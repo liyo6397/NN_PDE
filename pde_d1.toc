@@ -1,0 +1,12 @@
+\contentsline {section}{\numberline {1}Experiment}{1}
+\contentsline {subsection}{\numberline {1.1}Examples for ODE}{1}
+\contentsline {section}{\numberline {2}Schematic of the Algorithm}{4}
+\contentsline {subsection}{\numberline {2.1}Formulation}{4}
+\contentsline {section}{\numberline {3}Stochastic Gradient Descent}{4}
+\contentsline {subsection}{\numberline {3.1}ODE}{4}
+\contentsline {subsubsection}{\numberline {3.1.1}First Order ODE}{4}
+\contentsline {subsubsection}{\numberline {3.1.2}Kth Order ODE}{6}
+\contentsline {subsection}{\numberline {3.2}PDE}{6}
+\contentsline {subsubsection}{\numberline {3.2.1}Two-Dimension PDE}{6}
+\contentsline {section}{\numberline {4}Convergence Method}{7}
+\contentsline {section}{\numberline {5}Relative Work}{7}
