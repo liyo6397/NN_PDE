@@ -17,18 +17,6 @@ def assert_shape(x, shape):
             raise Exception("Shape mismatch: {} -- {}".format(S, shape))
 
 
-def compute_dx(u, x):
-    grad_1 = tf.gradients(u, x)[0]
-    g1 = grad_1[:, 0]
-    pred_dx1 = tf.reshape(g1, (-1, input_size))
-    grad_2 = tf.gradients(pred_dx1, x)[0]
-    g2 = grad_2[:, 0]
-    pred_dx2 = tf.reshape(g2, (-1, input_size))
-    assert_shape(pred_dx1, (None, input_size))
-
-    return pred_dx1, pred_dx2
-
-
 def f(x, u_set, pred_dx1, pred_dx2=0):
     # equation 1
     # f =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
@@ -40,19 +28,21 @@ def f(x, u_set, pred_dx1, pred_dx2=0):
 
 class DNNPDE:
 
-    def __init__(self, nx, num_lyr, d, weights, biases, input_size):
+    def __init__(self, n_inputs, num_lyr, d, weights, biases, input_size, start, end):
         # inputs
+        self.n_inputs = n_inputs
         self.x = tf.placeholder(shape=[None, 1], dtype=TF_DTYPE)
-        self.x_space = np.linspace(start, end, n_inputs)
+        self.x_space = np.linspace(start, end, self.n_inputs)
         self.input_size = input_size
-        self.n_inputs = nx
+
         # hidden
         self.n_layers = num_lyr
         self.n_hidden = 10
+
         # outputs
         self.u = self.u_network(self.x)
         self.loss = self.loss_function()
-        self.error = np.zeros(nx)
+        self.error = np.zeros(self.n_inputs)
         var_list1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "forward")
         self.opt = tf.train.AdamOptimizer(learning_rate=0.001).minimize(self.loss, var_list=var_list1)
 
@@ -65,9 +55,20 @@ class DNNPDE:
 
         return output
 
+    def compute_dx(self, u, x):
+        grad_1 = tf.gradients(u, x)[0]
+        g1 = grad_1[:, 0]
+        pred_dx1 = tf.reshape(g1, (-1, self.input_size))
+        grad_2 = tf.gradients(pred_dx1, x)[0]
+        g2 = grad_2[:, 0]
+        pred_dx2 = tf.reshape(g2, (-1, self.input_size))
+        assert_shape(pred_dx1, (None, self.input_size))
+
+        return pred_dx1, pred_dx2
+
     def loss_function(self):
 
-        pred_dx1, pred_dx2 = compute_dx(self.u, self.x)
+        pred_dx1, pred_dx2 = self.compute_dx(self.u, self.x)
         # pred_dx2 = compute_dx(pred_dx1,self.x)
 
         # loss = f(self.x,self.u,pred_dx)
@@ -90,7 +91,7 @@ class DNNPDE:
 
     def train(self, sess, i):
 
-        domain_x = self.x_space.reshape((-1, input_size))
+        domain_x = self.x_space.reshape((-1, self.input_size))
         _, loss, u = sess.run([self.opt, self.loss, self.u], feed_dict={self.x: domain_x})
         # loss = sess.run([self.loss], feed_dict={self.x: domain_x})
 
@@ -102,37 +103,42 @@ class DNNPDE:
         return loss, u  # res
 
 
-# Network Parameter
-input_num_units = 1
-h2_num_units = 10
-output_num_units = 1
-# Function
-start, end = 0, 1
-n_inputs = 10
-input_size = 1
-num_lyr, d = 10, 1
-d = 1
-x_space = np.linspace(start, end, n_inputs)
+def main():
+    # Network Parameter
+    input_num_units = 1
+    h2_num_units = 10
+    output_num_units = 1
 
-# Tensorflow Variable
-seed = 100
-input_size = 1
-seq_length_batch = np.array([n_inputs, 1])
-weights = {'output': tf.Variable(tf.random_normal([h2_num_units, output_num_units], seed=seed))}
-biases = {'output': tf.Variable(tf.random_normal([h2_num_units], seed=seed))}
+    # Function
+    start, end = 0, 1
+    n_inputs = 10
+    input_size = 1
+    num_lyr, d = 10, 1
+    d = 1
+    x_space = np.linspace(start, end, n_inputs)
 
-# Structure of deep learning
-DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size)
-# model = DNN.RNN(x_space)
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    for step in range(10):
-        loss, u = DNN.train(sess, step)
-        print(step)
-        print(f"Last loss:", loss)
-        print(f"u", u)
-pred = [p for p in u]
+    # Tensorflow Variable
+    seed = 100
+    seq_length_batch = np.array([n_inputs, 1])
+    weights = {'output': tf.Variable(tf.random_normal([h2_num_units, output_num_units], seed=seed))}
+    biases = {'output': tf.Variable(tf.random_normal([h2_num_units], seed=seed))}
 
-for x in x_space:
-    exact = np.exp(-x / 5.) * np.sin(x)
-    print(exact)
+    # Structure of deep learning
+    DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size, start, end)
+    # model = DNN.RNN(x_space)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for step in range(10):
+            loss, u = DNN.train(sess, step)
+            print(step)
+            print(f"Last loss:", loss)
+            print(f"u", u)
+    pred = [p for p in u]
+
+    for x in x_space:
+        exact = np.exp(-x / 5.) * np.sin(x)
+        print(exact)
+
+
+if __name__== "__main__":
+    main()
