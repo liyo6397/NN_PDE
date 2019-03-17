@@ -21,6 +21,10 @@ class TestDNNPDE(unittest.TestCase):
         self.sess.close()
         tf.reset_default_graph()
 
+    def test_gen_answer(self):
+        # exact= [0.0, 0.4338021664911263, 0.6889381730850401]
+        print("exact=", self.transform([np.exp(-x / 5.) * np.sin(x) for x in self.x]))
+
     def test_tf_placeholder(self):
         # given
         out = self.dnn.x
