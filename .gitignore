@@ -13,3 +13,7 @@ pdf__pycache__
 *.blg
 *.bbl
 *.pages
+
+*.swp
+*.swo
+/.idea
