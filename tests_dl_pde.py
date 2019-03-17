@@ -2,14 +2,10 @@ import unittest
 import numpy as np
 import tensorflow as tf
 
-from dlpde_v1 import DNNPDE
+from dlpde_v1 import DNNPDE, transform, print_exact
 
 
 class TestDNNPDE(unittest.TestCase):
-    @staticmethod
-    def transform(results):
-        return [r[0] for r in results]
-
     def setUp(self):
         self.N_INPUTS = 3
         self.sess = tf.Session()
@@ -21,9 +17,9 @@ class TestDNNPDE(unittest.TestCase):
         self.sess.close()
         tf.reset_default_graph()
 
-    def test_gen_answer(self):
+    def test_print_exact(self):
         # exact= [0.0, 0.4338021664911263, 0.6889381730850401]
-        print("exact=", self.transform([np.exp(-x / 5.) * np.sin(x) for x in self.x]))
+        print_exact(np.linspace(0, 1, self.N_INPUTS))
 
     def test_tf_placeholder(self):
         # given
@@ -33,7 +29,7 @@ class TestDNNPDE(unittest.TestCase):
         result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
 
         # then
-        print('x=', self.transform(result))
+        print('x=', transform(result))
 
     def test_network(self):
         # given
@@ -43,7 +39,7 @@ class TestDNNPDE(unittest.TestCase):
         result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
 
         # then
-        print("u_network=", self.transform(result))
+        print("u_network=", transform(result))
 
     def test_compute_dx(self):
         # given
@@ -55,8 +51,8 @@ class TestDNNPDE(unittest.TestCase):
         # then
         # print(result)
         pred_dx1, pred_dx2 = result
-        print("pred_dx1=", self.transform(pred_dx1))
-        print("pred_dx2=", self.transform(pred_dx2))
+        print("pred_dx1=", transform(pred_dx1))
+        print("pred_dx2=", transform(pred_dx2))
 
     def test_evaluation(self):
         # given
@@ -66,7 +62,7 @@ class TestDNNPDE(unittest.TestCase):
         result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
 
         # then
-        print("evaluation=", self.transform(result))
+        print("evaluation=", transform(result))
 
     def test_loss(self):
         # given

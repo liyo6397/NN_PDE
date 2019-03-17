@@ -5,7 +5,18 @@ from sympy import symbols, diff
 import tensorflow as tf
 from tensorflow.python.keras import layers
 
+MOMENTUM = 0.99
+EPSILON = 1e-6
+
 TF_DTYPE = tf.float64
+
+
+def print_exact(x_space):
+    print("exact=", [np.exp(-x / 5.) * np.sin(x) for x in x_space])
+
+
+def transform(results):
+    return [r[0] for r in results]
 
 
 def assert_shape(x, shape):
@@ -18,10 +29,15 @@ def assert_shape(x, shape):
 
 
 def f(x, u_set, pred_dx1, pred_dx2=0):
+    # sample equation: y = 2x --> y - 2x = 0
+    # val = u_set - 2 * x
+    # exact equation: y = e^(-x/5) * sin(x) --> y - e^(-x/5) * sin(x) = 0
+    val = u_set - tf.math.exp(-x / 5.) * tf.math.sin(x)
+
     # equation 1
-    # f =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
+    # val =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
     # equation 2
-    val = pred_dx2 + (1 / 5.) * pred_dx1 + u_set + (1. / 5) * tf.math.exp(-x / 5.) * tf.math.cos(x)
+    # val = pred_dx2 + (1 / 5.) * pred_dx1 + u_set + (1. / 5) * tf.math.exp(-x / 5.) * tf.math.cos(x)
 
     return val
 
@@ -90,26 +106,39 @@ class DNNPDE:
                 initializer = tf.random_normal_initializer(stddev=stddev / np.sqrt(shape[1] + output_size))
             weight = tf.get_variable('Matrix', [shape[1], output_size], TF_DTYPE, initializer)
             hiddens = tf.matmul(input, weight)
+            hiddens_bn = self._batch_norm(hiddens)
 
         if activation_fn:
             # print('creating hidden layer %d' % nth_layer)
-            return activation_fn(hiddens)
+            return activation_fn(hiddens_bn)
 
         else:
             # print('creating output layer %d' % nth_layer)
-            return hiddens
+            return hiddens_bn
 
-    def train(self, sess, i):
+    def _batch_norm(self, x, name='batch_norm'):
+        """Batch normalization"""
+        with tf.variable_scope(name):
+            params_shape = [x.get_shape()[-1]]
+            beta = tf.get_variable('beta', params_shape, TF_DTYPE,
+                                   initializer=tf.random_normal_initializer(
+                                       0.0, stddev=0.1, dtype=TF_DTYPE))
+            gamma = tf.get_variable('gamma', params_shape, TF_DTYPE,
+                                    initializer=tf.random_uniform_initializer(
+                                        0.1, 0.5, dtype=TF_DTYPE))
+            # These ops will only be preformed when training
+            mean, variance = tf.nn.moments(x, [0], name='moments')
+            y = tf.nn.batch_normalization(x, mean, variance, beta, gamma, EPSILON)
+            y.set_shape(x.get_shape())
+            return y
+
+    def train(self, sess):
 
         domain_x = self.x_space.reshape((-1, self.input_size))
         _, loss, u = sess.run([self.opt, self.loss, self.u], feed_dict={self.x: domain_x})
         # loss = sess.run([self.loss], feed_dict={self.x: domain_x})
 
         # Z = uh.reshape((self.input_size, self.refn))
-
-        if i % 1000 == 0:
-            print("Iteration={}, loss= {}".format(i, loss))
-
         return loss, u  # res
 
 
@@ -134,16 +163,20 @@ def main():
     biases = {'output': tf.Variable(tf.random_normal([h2_num_units], seed=seed))}
 
     # Structure of deep learning
-    DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size, start, end)
+    DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size, start, end, n_hidden=100)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for step in range(10000):
-            loss, u = DNN.train(sess, step)
-        print(u)
+        loss, u = (0, None)
+        for step in range(1000):
+            loss, u = DNN.train(sess)
 
-    for x in x_space:
-        exact = np.exp(-x / 5.) * np.sin(x)
-        print(exact)
+            if step % 1000 == 0:
+                print("Step:%6d loss:%.4e" % (step, loss))
+
+        print("loss=%.4e" % loss)
+        print("u=", list(map(lambda n: "%.4e" % n, transform(u))))
+
+    print_exact(x_space)
 
 
 if __name__ == "__main__":
