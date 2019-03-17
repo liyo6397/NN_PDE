@@ -11,3 +11,4 @@ pdf__pycache__
 *.toc
 *.pdf
 *.blg
+*.pages
