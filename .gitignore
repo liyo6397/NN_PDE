@@ -1,0 +1,13 @@
+/images
+
+pdf__pycache__
+*.pyc
+
+.DS_Store
+
+*.aux
+*.log
+*.synctex.gz
+*.toc
+*.pdf
+*.blg
