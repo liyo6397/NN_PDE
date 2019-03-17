@@ -21,14 +21,18 @@ def f(x, u_set, pred_dx1, pred_dx2=0):
     # equation 1
     # f =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
     # equation 2
-    f = pred_dx2 + (1 / 5.) * pred_dx1 + u_set + (1. / 5) * tf.math.exp(-x / 5.) * tf.math.cos(x)
+    val = pred_dx2 + (1 / 5.) * pred_dx1 + u_set + (1. / 5) * tf.math.exp(-x / 5.) * tf.math.cos(x)
 
-    return f
+    return val
 
 
 class DNNPDE:
 
-    def __init__(self, n_inputs, num_lyr, d, weights, biases, input_size, start, end):
+    def __init__(self, n_inputs, num_lyr, d, weights, biases, input_size, start, end,
+                 n_hidden=10, static_layer_initializer=False):
+        # layer option
+        self.static_layer_initializer = static_layer_initializer
+
         # inputs
         self.n_inputs = n_inputs
         self.x = tf.placeholder(shape=[None, 1], dtype=TF_DTYPE)
@@ -37,7 +41,7 @@ class DNNPDE:
 
         # hidden
         self.n_layers = num_lyr
-        self.n_hidden = 10
+        self.n_hidden = n_hidden
 
         # outputs
         self.u = self.u_network(self.x)
@@ -50,7 +54,7 @@ class DNNPDE:
         with tf.variable_scope('forward'):
             for i in range(self.n_layers - 1):
                 x = self.layer(x, self.n_hidden, i, activation_fn=tf.nn.relu, name='layer_{}'.format(i))
-            output = self.layer(x, self.input_size, i, activation_fn=None, name='output_layer')
+            output = self.layer(x, self.input_size, self.n_layers - 1, activation_fn=None, name='output_layer')
         assert_shape(x, (None, self.n_hidden))
 
         return output
@@ -66,27 +70,33 @@ class DNNPDE:
 
         return pred_dx1, pred_dx2
 
+    def evaluation(self):
+        pred_dx1, pred_dx2 = self.compute_dx(self.u, self.x)
+        return f(self.x, self.u, pred_dx1, pred_dx2)
+
     def loss_function(self):
 
-        pred_dx1, pred_dx2 = self.compute_dx(self.u, self.x)
-        # pred_dx2 = compute_dx(pred_dx1,self.x)
-
-        # loss = f(self.x,self.u,pred_dx)
-        ls = tf.math.abs(f(self.x, self.u, pred_dx1, pred_dx2))
+        ls = tf.math.abs(self.evaluation())
         loss = tf.reduce_mean(ls)
 
-        return pred_dx1
+        return loss
 
     def layer(self, input, output_size, nth_layer, activation_fn=None, name='linear', stddev=5.0):
         with tf.variable_scope(name):
             shape = input.get_shape().as_list()
-            weight = tf.get_variable('Matrix', [shape[1], output_size], TF_DTYPE,
-                                     tf.random_normal_initializer(stddev=stddev / np.sqrt(shape[1] + output_size)))
+            if self.static_layer_initializer:
+                initializer = tf.ones_initializer
+            else:
+                initializer = tf.random_normal_initializer(stddev=stddev / np.sqrt(shape[1] + output_size))
+            weight = tf.get_variable('Matrix', [shape[1], output_size], TF_DTYPE, initializer)
             hiddens = tf.matmul(input, weight)
 
         if activation_fn:
+            # print('creating hidden layer %d' % nth_layer)
             return activation_fn(hiddens)
+
         else:
+            # print('creating output layer %d' % nth_layer)
             return hiddens
 
     def train(self, sess, i):
@@ -97,8 +107,8 @@ class DNNPDE:
 
         # Z = uh.reshape((self.input_size, self.refn))
 
-        # if i % 1000 == 0:
-        #    print("Iteration={}, loss= {}".format(i, loss))
+        if i % 1000 == 0:
+            print("Iteration={}, loss= {}".format(i, loss))
 
         return loss, u  # res
 
@@ -125,20 +135,16 @@ def main():
 
     # Structure of deep learning
     DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size, start, end)
-    # model = DNN.RNN(x_space)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for step in range(10):
+        for step in range(10000):
             loss, u = DNN.train(sess, step)
-            print(step)
-            print(f"Last loss:", loss)
-            print(f"u", u)
-    pred = [p for p in u]
+        print(u)
 
     for x in x_space:
         exact = np.exp(-x / 5.) * np.sin(x)
         print(exact)
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     main()

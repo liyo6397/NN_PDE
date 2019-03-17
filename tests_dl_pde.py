@@ -6,60 +6,69 @@ from dlpde_v1 import DNNPDE
 
 
 class TestDNNPDE(unittest.TestCase):
-    def test_compute_dx(self):
-        # given
-        x = tf.constant([[-2.25], [-3.25]], dtype=tf.float64)
-        u = tf.constant([[-2.25], [-3.25]], dtype=tf.float64)
-        # x = tf.Tensor(op=None, value_index=0, dtype=tf.float64)
+    @staticmethod
+    def transform(results):
+        return [r[0] for r in results]
 
-        dnn = DNNPDE(10, 2, 0, None, None, 1, 0, 1)
-        # x = np.linspace(0, 1, 10).reshape((-1, 1))
-        # u = dnn.u_network(x)
+    def setUp(self):
+        self.N_INPUTS = 3
+        self.sess = tf.Session()
+        self.x = np.linspace(0, 1, self.N_INPUTS).reshape((-1, 1))
+        self.dnn = DNNPDE(self.N_INPUTS, 2, 0, None, None, 1, 0, 1, n_hidden=3, static_layer_initializer=True)
+        self.sess.run(tf.global_variables_initializer())
 
-        # when
-
-        # then
-
-        pass
+    def tearDown(self):
+        self.sess.close()
+        tf.reset_default_graph()
 
     def test_tf_placeholder(self):
-        sess = tf.InteractiveSession()
-        with sess.as_default():
-            # given
-            # real_x = [1, 2, 3, 4]
-            real_x = np.linspace(0, 1, 11).reshape((-1, 1))
-            x = tf.placeholder(tf.float32, name='x')
-            out = tf.add(x, x)
+        # given
+        out = self.dnn.x
 
-            # when
-            result = sess.run(out, feed_dict={x: real_x})
+        # when
+        result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
 
-            # then
-            print(result)
-
-    def test_interactive(self):
-        sess = tf.InteractiveSession()
-        with sess.as_default():
-            real_x = np.linspace(0, 1, 11).reshape((-1, 1))
-
-            x = tf.placeholder(tf.float32, name='x')
-            out = tf.add(x, x)
-            result = sess.run(out, feed_dict={x: real_x})
-            print(result)
-
-    def test_compute(self):
-        sess = tf.InteractiveSession()
-        with sess.as_default():
-            x = np.linspace(0, 1, 10).reshape((-1, 1))
-            dnn = DNNPDE(10, 2, 0, None, None, 1, 0, 1)
-            out = dnn.compute_dx(dnn.u, dnn.x)
-            sess.run(out, feed_dict={dnn.x: x})
+        # then
+        print('x=', self.transform(result))
 
     def test_network(self):
-        sess = tf.InteractiveSession()
-        with sess.as_default():
-            # given
-            real_x = np.linspace(0, 1, 11).reshape((-1, 1))
-            dnn = DNNPDE(10, 2, 0, None, None, 1, 0, 1)
-            out = dnn.u_network(dnn.x)
-            sess.run(out, feed_dict={dnn.x: real_x})
+        # given
+        out = self.dnn.u
+
+        # when
+        result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
+
+        # then
+        print("u_network=", self.transform(result))
+
+    def test_compute_dx(self):
+        # given
+        out = self.dnn.compute_dx(self.dnn.u, self.dnn.x)
+
+        # when
+        result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
+
+        # then
+        # print(result)
+        pred_dx1, pred_dx2 = result
+        print("pred_dx1=", self.transform(pred_dx1))
+        print("pred_dx2=", self.transform(pred_dx2))
+
+    def test_evaluation(self):
+        # given
+        out = self.dnn.evaluation()
+
+        # when
+        result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
+
+        # then
+        print("evaluation=", self.transform(result))
+
+    def test_loss(self):
+        # given
+
+        # when
+        result = self.sess.run(self.dnn.loss, feed_dict={self.dnn.x: self.x})
+
+        # then
+        print("loss=", result)
