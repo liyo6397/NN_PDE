@@ -1,0 +1,211 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
+\usepackage{subcaption}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem{lemma}{Lemma}[section]
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+
+\begin{document}
+	\tableofcontents
+	\section{Introduction}
+
+	In our paper, we consider a class of quasilinear parabolic partial differential equations:
+	\begin{equation}
+	\begin{cases}
+ \frac{\partial u}{\partial t} +A(u) =\frac{\partial u}{\partial t}+div(a(x,t,u,Du))+a(x,t,u,Du)=0 & \text{for $(x,t) \in \Omega_{T}$}\\
+u(0,x) = u_{0}(x), & \text{for $x \in \Omega$} \\
+u(t,x) = 0, & \text{ for $x \in \Omega_{T}$} \\
+	\end{cases}
+	\label{eq:cauchy}
+	\end{equation}
+	The solution $u(x,t)$ can be approximated by multilayered neural network with respect to the loss function $J$. Define $Q^{m}$ as the set of all functions implemented by neural networks with one hidden layer, $m$ hidden units and $\textit{l}$ output unit given values at $k$ input units.
+	\begin{equation}
+	Q^{(m)}(\psi)=\left \lbrace f(\psi,x_i,t): \mathbb{R}^{m} \rightarrow \mathbb{R}^{\textit{l}}:  f(\psi,x_i,t) = \sum_{j=1}^{m}v_{j}\psi(w_{j}x_{i} + c_j ) \forall i = 0, \dots, N \right\rbrace
+	\label{eq:nn}
+	\end{equation}
+	where $w$ and $v$ is the inner and output weights and $\psi$ is the activation function. $k$ is also the number dimension of PDEs.
+	\subsection{Abridged notations}
+	\textbf{Quasilinear parabolic PDEs:}
+	\begin{enumerate}
+			\item $T$ is a finite time interval $[0,T], T>0$
+		\item $E_{n}$ is the \textit{n}-dimensional eculidean space; $x = (x_1, \dots , x_n) \forall i = 0, \dots, N$ is an arbitrary points in it.
+		\item $E_{n+1}$ is the \textit{n+1}-dimensional eculidean space;
+		its points is denoted by $(x,t)$, where $x$ is in $E_{n}$ and $t$ is in $(- \infty, \infty)$
+		\item $\Omega$ is a bounded domain in $E_{n}$.
+		\item S is the subset of $\Omega$
+		\item $\Omega_{T} = H_{T} \cap \Omega$ where $H_{T}$ is the open ball in $E_{n}$ of radius $T$, i.e. the sets of points $(x,t)$ of $E_{n+1}$ with $x \in \Omega$, $t \in (0,T)$
+		\item $u(x,t) \in \Omega_{T}$ is the classical solutions of (\ref{eq:cauchy})
+		\item $\mu(t)=(\mu_1, \dots, \mu_{n}) \forall i = 0, \dots, N$ is input measure environment on $\Omega_{T}$.
+		\item $\nu(t)$ is a positive continuous function defined for $t \leq 0$
+	\end{enumerate}
+	\textbf{Neural Network:}
+	\begin{enumerate}
+		\item Let $j \in \mathbb{N}^m$ with $j \leq 2$ be the number of hidden units in the m-dimensional hidden layer.
+		\item Define the inner weights and output weights as $w \in R^n$ and $v \in R^n\times 1$.
+		\item Bias $\theta \in \mathbb{R}$ is fixed.
+		\item Let output units $\textit{l}$ given $k$ input units, so that $\textit{l} \in R^{k}$.
+		\item The closeness $J$ is measured by the uniform distance functions between function on $\Omega_{T}$. That is, \[J(f,A) = \sup_{x \in \Omega}|f(x,u)-A(x)| \]
+\end{enumerate}
+		\subsection{Definition of the function space}
+		Let us now introduce the precise setting of (\ref{eq:cauchy}) and (\ref{eq:nn}). The solution is in the Banach space with the norm
+		\begin{equation}
+		||u||_{q,\Omega} = \left(\int_{\Omega} |u(x)|^{p} dx\right)^{\frac{1}{p}}
+		\end{equation}
+		and $u_{0} \in L^{p}(\Omega)$. In our paper, we aim to implement multilayered neural network to approximate the solutions of PDEs in $L^{p}(\mu)$. $L^{p}(\mu)$ is the Banach space consisting of all measurable functions on $\mu$ that are p-power summable on $\Omega$
+		\begin{equation}
+		||f(\psi,x_i,t)||_{p,\mu} = \left[\int_{\mu} |f(\psi,x_i,t)|^{p} d\mu(x)\right]^{\frac{1}{p}} < \infty
+		\end{equation}
+		so that
+		\begin{equation}
+		J_{p,\mu}(f,A) = || f-A || \in L^{p}(\mu)
+		\end{equation}
+
+		Let the input environment measure $\mu$ be Lebesgue measure on $\Omega$ and $C^{d}(R^{k})$ denotes the space of all continuous and differentiable functions $f$ with partial derivative $D^{\alpha}f$ of order $|\alpha| < d$ are continuous on $R^{k}$.  For $f \in C^{d}(R^{k})$ and $1 < p < \infty$, f is the usual Sobolev space of order $d$ with the norm.
+		\begin{equation}
+		||f(\psi,x_i,t)||_{p,\mu} = \left[ \sum_{\alpha \leq d} \int_{R^{k}} |D^{\alpha}f(\psi,x_i,t)|^{p} d \mu(x)\right]^{\frac{1}{p}}
+		\end{equation}
+
+
+
+\section{Mathematical analysis of multilayered neural network}
+ The Kolmogorov superposition theorem presented in 1957 and solved the Hilbert’s thirteenth problem \footnotemark about analytic function of three variables that can be expressed as a superposition of bivariate ones.  Kolmogorov’s superposition theorem found attention in neural network computation by Hecht{-}Nielsen\cite{nielsen}. The representation of continuous function defined on an n{-}dimensional cube by sums and superpositions of continuous of one variable shows the potential applicability in neural network\cite{kurkova}. Due to many scientists devoted to transform Kolmogorov’s superposition theorem to numerical algorithm in many years, Kolmogorov’s generalization become the current neural network approximate theorem.
+
+\footnotetext{Hilbert considered the seventh-degree equation: $x^{7} + ax^{3} + bx^{2}+cx +1 =0$ and asked whether its solution,  can be the composition of a finite number of two-variable functions.}
+
+\begin{theorem}
+	 (\textit{A. Kolmogorov, 1956; V. Arnold, 1957}) Let $f : \mathbb{I}^{n} := [0,1]^{n} \rightarrow\mathbb{R}$ be an arbitrary multivariate continuous function. Then, it has the representation
+	 \begin{equation}
+	 f(x_1,x_2, \dots, x_n)=\sum_{j=1}^{2m}\Phi_{q}\left(\sum_{i=1}^{n}\psi_{i,j}(x_i)\right)
+	 \label{eq:komo}
+	 \end{equation}
+	 with continuous one-dimensional outer and inner function $\Phi_{j}$ and $\psi_{j,i}$. Moreover, functions $\psi$ are universal for the given dimension $m$; they are independent of $f$.
+	\end{theorem}
+%The original Kolmogorov superposition theorem cannot be used in the algorithm in numerical calculation, because the inner function is highly non-smooth. To make functions $\Phi_{q}$ and $\psi_{q,p}$ in (\ref{eq:komo}) smooth, Kurkova \cite{kurkova}  substituted $\Phi_{q}$ and $\psi_{q,p}$ by  staircase-like functions of any sigmoid type which is continuous with closed interval.
+By Theorem 1,2 in \cite{hornik}, we shows that neural network is dense in $C^{d}(\Omega_{T})$.
+
+
+\begin{lemma}
+	If $\psi$ is bounded and nonconstant function, then $f(\psi,x_i,t)$ is dense in $C(\Omega_{T})$ for all compact subsets $\Omega_{T}$ of $\mathbb{R}^{k}$ where $C(\Omega_{T})$ is the space of all continuous functions on $\Omega_{T}$. \label{dense_set}
+\end{lemma}
+\begin{proof}
+	(i) As $f(\psi,x_i,t)$ is bounded, $f(\psi,x_i,t)$ is a linear subspace of $L^{p}(\mu)$ on $R^{k}$. If for some $\mu$ and $f(\psi,x_i,t)$ is not dense in $L^{p}(\mu)$, Friedman yields in Corollary 4.8.7 \cite{friedman} that there is a nonzero continuous linear function $\Lambda$ on $L^{p}(\mu)$ that vanishes on $f(\psi,x_i,t)$. Friedman described $\Lambda$ in Corollary 4.14.4 and Theorem 4.14.6 \cite{friedman} that $\Lambda$ is the form
+	\[f \rightarrow \Lambda(f)=\int_{\Omega_{T}}fg d\mu\]
+	with some $g$ in $L^{p}(\mu)$ where $q$ is the exponent of $q=\frac{p}{p-1}$(For $p=1$ we obtain $q = \infty$; $L^{\infty}(\mu)$ is the space of all functions f for which the $\hat{u}$ the essential supremum
+		\[||f|| = inf\{N>0 : \mu \{x \in \Omega_{T}\} : |f(\psi,x_i,t)| > N\} = 0 \]
+		is finite, that is the space of all $\mu$ is bounded functions.)
+
+		Let $\sigma(B) = \int_{B} g d\mu$, we find by Holder's inequality that for all $B$
+
+		\begin{equation}
+		\begin{aligned}
+		\left|\sigma(B)\right| &= \left|\int_{\Omega_{T}}1_{B}g d \mu\right|\\
+		 & \leq ||1_{B}||_{p,\mu} ||g||_{p,\mu} \leq (\mu(\Omega_{T}))^{\frac{1}{p}}||g||_{p,\mu} < \infty
+		 \end{aligned}
+		\end{equation}
+	     hence $\sigma$ is nonzero finite signed measure on $R^{k}$ such that
+	     \begin{equation}
+	     \Lambda(f) =\int_{\Omega_{T}}fg d\hat{u} =  \int_{\Omega_{T}}f d\sigma
+	     \end{equation}
+	     As $\Lambda$ vanishes on $Q(\psi,x,T)$, we conclude that
+	     \begin{equation}
+	     \int_{\Omega_{T}} \psi(wx'+\theta)d \sigma(x) = 0
+	    \end{equation}
+	    for all $w \in R^{k}$ and $\theta \in \mathbb{R}$. Hence the subspace $f(\psi,x_i,t)$ must be dense in $C(\Omega_{T})$.\\
+
+	    (ii) Suppose that $\psi$ is continuous and that for some compact subset $S$ of $\Omega_{T}$, $f(\psi,x_i,t)$ is not dense in $C(S)$. Proceeding as the proof of Theorem 1 in Cybenko \cite{cybenko}, we find that in this case there exists a nonzero finite signed measure $\sigma$ on $R^{k}$ such that
+	    \[ \int_{R^{k}} \psi(wx'+\theta)d \sigma(x) = 0\]
+	    for all $w \in R^{k}$ and $\theta \in \mathbb{R}$. Hence the subspace $f(\psi, x, t)$ must be dense in $C(\Omega_{T})$.
+\end{proof}
+Kurkova proved in \cite{kurkova} that the multilayered neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f,A)$.
+
+\begin{theorem}  \label{nn_proof}
+	Let $m \in \mathbb{N}$ with $m \geq 2$, $\psi: \Omega_{T} \rightarrow \textit{I}$ be a sigmoid function. $f \in C^{d}(\Omega_{T}))$, and $\epsilon$ be a positive real number. Then, there exist $k \in \mathbb{N}$ and functions $\Phi_{i}$ and $\psi_{p,i} \in f(\psi,x_i,t)$ such that
+	\begin{equation}
+	\left|f(x_1,\dots,x_n)-\sum_{q=0}^{2n}\Phi_{q}\left(\sum_{j=1}^{m}\psi_{j,q}(x_j)\right)\right| < \epsilon \text{ for every } (x_1, \dots, x_) \in I^{n}
+	\end{equation}
+\end{theorem}
+\begin{proof}
+	By Kolmogorov superposition theorem,
+	\[f(x_1,x_2, \dots, x_n)=\sum_{q=0}^{2n}\Phi_{q}\left(\sum_{j=1}^{M}\psi_{j,q}(x_i)\right)\]
+	Take $[a,b] \subset \Omega_{T}$ such that for every $j=1,\dots,M$, $q=1, \dots 2n+1$ and $\psi_{j,q}(\textit{I}^{M})\subseteq [a,b]$. By Lemma \ref{dense_set} for every $q = 1, \dots 2n+1$ there exist $g_{q} \in Q(\psi,x,T)$ such that
+	\[\left|g_{q}(x)-\phi_{q}(x)\right|<\frac{\epsilon}{2n(2n+1)} \text{for every } x \in [a,b]\]
+	Since $g_{q}$ is uniformly continuous, there exist $\delta$ such that
+	\[\left|g_{q}(x)-g_{q}(y)\right| <\frac{\epsilon}{2n(2n+1)} \text{for every } x \in [a,b]\]
+	\[\text{with } \left|x-y\right|<\delta \]
+	For every $j=1,\dots,M$, $q=1, \dots 2n+1$, there exist $h_{j,q} \in Q(\psi,x,T)$ such that for every $x \in \textit{I}$
+	\[\left|h_{pq}(x)-\psi_{pq}(x)\right|<\delta \]. Hence, for every $(x_1, \dots , x_n)\in \textit{I}^{N}$
+	\[	\left|\sum_{q=1}^{2n+1}g_{q}\left(\sum_{j=1}^{M}h_{p,q}(x_p)\right)-f(x_1,\dots,x_n)\right| < \epsilon\]
+\end{proof}
+\subsection{Approximation capability of multilayered neural network}
+
+
+Measuring closeness of functions requires that the activation funcction is nonconstant and derivatives of the approximate function up to order are bounded \cite{hornik}. Then, $f(\psi,x_i,t)$ is dense in weighted Sobolev space $C^{d,p}(\mu)$ which is defined as \cite{hornik}
+\begin{equation}
+C^{d,p}(\mu) = \{ u \in C^{d}(\Omega_{T}): ||u||_{d,p,\mu} < \infty \}
+\end{equation}
+Therefore, it guarantees the loss function is smooth functional approximation.
+
+Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions make the loss function $J(f)$ arbitrarily small.
+
+\begin{theorem}\cite{sirignano}
+	Let the $L^{2}$ error $J(f,A)$ measures how well the approximate solution $f$ satisfies the differential operator in the equation.
+
+	\noindent \medspace
+	Let $f$ be a neural network which minimizes loss function $J(f,A)$. There exists
+	\[f_i \in \textit{Q} \textrm{ such that } J(f_{i},A) \rightarrow 0 \textrm{ as } n \rightarrow \infty \text{ and}\]
+	\[ f_{i} \rightarrow u  \text{ as } n \rightarrow \infty.\] Therefore, using the results from the proof of Theorem 3 \cite{hornik}, for all $u \in C^{d}(\Omega_{T}))$ and $\epsilon > 0$, there is a function $f_{i}$ such that
+	\begin{equation}\label{eq:m_dense}
+	||f(\psi, x_{i},t)-A||_{m,p,\mu} < \epsilon
+	\end{equation}
+
+
+\end{theorem}
+
+\begin{proof}
+	Hornik in Theorem 3 \cite{hornik} presented that if the activation function $\psi \in C^{d}(\Omega_{T})$ is nonconstant and bounded, $f(\psi,x_i,t) \in Q(\psi,x,T)$ is uniformly m-dense on the compacts of $C^{d}(\mathbb{R}^{k})$ and dense $C^{m,p}(\hat{u})$ In our proof, we consider the PDEs is second order,so $d=2$.
+
+	%We aim to find the approximate solutions in $C^{2,p}(\hat{u})$.
+	We assume that $(u,\bigtriangledown_{x}u) \rightarrow f(t,x,u,\bigtriangledown_{x}u)$ is locally Lipschitz continuous\footnotemark  in $(u,\bigtriangledown_{x}u)$ with Lipschiz constant. Let $f$ be the PDE function we aim to solve. This means that
+	\footnotetext{Suppose $A \subset \mathbb{R}^{n}$ is open and $f : A \rightarrow \mathbb{R}^{n}$ is differentiable. A function is locally Lipschitz continuous if there exists a contant $K>0$ and $\delta > 0$such that $|x_1-x_2|>\delta$ implies $|f(x_1)-f(x_2)| \leq K |x_1-x_2|^{}$.}
+
+	\begin{equation}\label{eq:lip}
+	\left|f(t,x,u,\bigtriangledown_{x}u) - f(t,x,\hat{u},\bigtriangledown_{x}\hat{u})\right| \leq \left(|u|^{q_{1}/2} + |\bigtriangledown_{x}u|^{q_{2}/2} + |\hat{u}|^{q_{3}/2} + |\bigtriangledown_{x}\hat{u}|^{q_{4}/2}\right)\left(|u-\hat{u}| + |\bigtriangledown_{x}u-\bigtriangledown_{x}\hat{u}|\right)
+	\end{equation}
+	for some constants $0<q_{1},q_{2},q_{3},q_{4} < \infty$. We integrate (\ref{eq:lip}) and using Holder inequality with exponents $r_{1}$, $r_{2}$:
+	\begin{equation}
+	\begin{aligned}
+		&\int_{\Omega_{T}}\left| \gamma(t,x,u,\bigtriangledown_{x}u) - \hat{\gamma}(t,x,\hat{u},\bigtriangledown_{x}\hat{u})\right|^{2} dv_{1}(t,x) \leq \\
+	&\int_{\Omega_{T}}\left(|u|^{q_{1}} + |\bigtriangledown_{x}u|^{q_{2}} + |\hat{u}|^{q_{3}} + |\bigtriangledown_{x}\hat{u}|^{q_{4}}\right)
+	\left(|u-\hat{u}|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}\hat{u}|^{2}\right)dv_{1}(t,x) \leq\\
+	&\left(\int_{\Omega_{T}}\left(|u|^{q_{1}} + |\bigtriangledown_{x}u|^{q_{2}} + |\hat{u}|^{q_{3}} + |\bigtriangledown_{x}\hat{u}|^{q_{4}}\right)^{r_{1}}dv_{1}(t,x)\right)^{1/r_{1}}
+	\left(\int_{\Omega_{T}}\left(|u-\hat{u}|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}\hat{u}|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}} \leq\\
+	K&\left(\int_{\Omega_{T}}\left(|u|^{q_{1}} + |\bigtriangledown_{x}u|^{q_{2}} + |\hat{u}|^{\max \{q_{1}q_{3}\}} + |\bigtriangledown_{x}\hat{u}|^{\max \{q_{2},q_{4}\}}\right)^{r_{1}}dv_{1}(t,x)\right)^{1/r_{1}}\\
+	&\times\left(\int_{\Omega_{T}}\left(|u-\hat{u}|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}\hat{u}|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}} \leq
+	K(\epsilon^{q_{1}}+\epsilon^{q_{2}}+sup|u|^{\max \{q_{1}q_{3}\}} + sup|\bigtriangledown_{x}u|^{\max \{q_{2}q_{4}\}} )\epsilon^{2}
+	\end{aligned}
+	\end{equation}
+	The last inequality is from (\ref{eq:m_dense})
+
+\end{proof}
+
+\section{Literature Review}
+
+Using deep neural network to find the solutions for PDEs has rising in the computational mathematics field in these years.  Finite difference methods become infeasible in higher dimensions due to the explosion in the number of grid points and the demand for reduced time step size. Sirignano \cite{sirignano} provided the proof for the approximation of PDE solutions with neural networks. We will present the proof in (Section 2). We propose to solve high-dimensional PDEs using a deep learning algorithm which uses multi-layer neural networks. A multi-layer neural network is composed with nonlinear operations with parameters estimating from data.
+
+
+\bibliographystyle{unsrt}
+\bibliography{ref}
+
+
+
+
+
+
+
+\end{document}

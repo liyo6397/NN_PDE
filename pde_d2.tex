@@ -1,0 +1,387 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
+\usepackage{subcaption}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{example}{Example}[section]
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+
+\begin{document}
+	\tableofcontents
+	\section{Notation}
+	\begin{enumerate}
+		
+		
+		\item \textbf{Solutions:} 
+		\begin{enumerate}
+			\item Domain: $\Omega \in \mathbb{N}, \bar{x} \in \Omega, \bar{x}=\{x_1, \dots, x_N\} \in \mathbb{R}^{N}, x_i=\{0, \frac{1}{N+1}, \dots , 1 \}.$
+			\item Unknown:   $u_{\text{trial}}= (\hat{u}_{1}, \dots , \hat{u}_{N}) \in \mathbb{R}^{N}$, $u_{\text{trial}}(x_i, \frac{\mathrm{d}\hat{u}}{\mathrm{d}x}(x_i), \frac{\mathrm{d}^{2}\hat{u}}{\mathrm{d}x^{2}}(x_i), \dots) \sim \hat{u}_{i}$. 
+		\end{enumerate}
+	\item \textbf{Structure of Neural Network:} 
+	\begin{enumerate}
+		\item Hidden layers: Let $j=\{1, \dots, M\}$ indicates the number of unit in a hidden layer.  Let $w_{h}^{(r)} \in \mathbb{R}^{1 \times M}$ and $v^{(r)} \in R^{M}$ denotes the hidden and output weights where $h$ is the $nth$ hidden layer and $r$ is the number of iteration. 
+		\item Output layer:  $Q(\bar{x},v^{(r)},w^{(r)})=\{Q_1, \dots, Q_N\} \in \mathbb{R}^N$.
+		\item Loss function for Neural Network: 
+		$\sum_{i=1}^{N} E(w,v;u(\bar{x})) = \left \| \hat{u}_{i+1} - (\hat{u}_{i}+hQ_{i}) \right\|^{2}$.
+	\end{enumerate}
+		
+		
+	
+	\end{enumerate}
+	
+	
+	
+	%I found the trial solution from Largis is obtaining from integrating the solution of neural network. For example, in first order differential equation is
+	%	\[\int Q(v,w,\bar{x}) = xQ(v,w,\bar{x}) + C \]
+%	\medspace \noindent	where $C$ is initial condition and $Q$ is the output of neural network. Therefore, the output of neural network is a approximation to 
+%	\[\triangledown_x u(x), \in \mathbb{R}, x \in \mathbb{R}^N, n\in\{0,1, \dots , N\}\] 
+%	instead of $u(x)$. 
+	%I use Neural network to approximate the $f_t$ in Euler method.  Then, calculate the trial solution in each iteration this time. 
+
+	\section{First Order Differential Equation}
+	We use example to illustrate how our model approximate the solutions of ODE by updating the weights in NN. 
+		\subsection{Examples}
+	
+		\textbf{Problem 1.1} Consider the nonlinear ODE: 
+	\[\frac{\mathrm{d}}{\mathrm{d}x}u + \left(x+\frac{1+3x^2}{1+x+x^3}\right)u = x^3 +2x +x^{2}\frac{1+3x^2}{1+x+x^3}\]
+	with initial conditions $u(0)$, $x \in [0,1]$, $x_i=\{x_0, \dots, x_N\}$ where $N=100$. We set the number of iterate times to 1000 for training NN model and five hidden units in one hidden layer. A window size for neural network is one for each time.
+	
+	\par
+	We use NN to approximate $\frac{\mathrm{d}u}{\mathrm{d}x}(x_i)$. The output forward propogation of NN is:
+	\begin{equation}\label{eq:output_ode}
+	Q_i (w^{(r)},v^{(r)},x_i)=  \sum_{j=1}^{M}  v_{j}^{(r)}\sigma (w_{j}^{(r)}*x_i), i = \{1, \dots, 100\}
+	\end{equation}
+	
+		\medspace \noindent
+	where r is the number of iterations for NN and $\sigma$ denotes sigmoid function:
+	
+	\[\sigma = \frac{1}{1+e^{-\textit{v}}}\]
+	
+	After using NN to approximate the derivative of $u$ at $x_i$, $i=\{0, \dots, N\}$, we insert it into a trial solution of $u$ at $x_i$:  
+	
+	\begin{equation}
+	\begin{aligned}
+	u_{\text{trial}}(x_{i+1}) &= u_{\text{trial}}(x_{i}) +h\frac{\mathrm{d}u_{\text{trial}}}{\mathrm{d}x}(x_i) \\
+							  &=  u_{\text{trial}}(x_{i}) +hQ_{i+1}(w,v,x_{i+1})
+	\end{aligned}
+	\label{eq:trial_example1}
+	\end{equation}
+	
+	\medspace \noindent
+	where $h$ is the uniform step size of Euler method.  
+	
+
+	We use the first iteration for example to illustrate the procedure of our model. 
+	\begin{enumerate}
+	
+	
+		\item In the first iteration, we first initialize the weights for NN. 
+		
+		\item  We can use NN to approximate the derivative of $u(x_i)$  from $x_0$ to $X_N$:
+		
+		\begin{enumerate}
+		
+			\item 
+	\[Q_0(w^{(1)},v^{(1)},x_0)=  \sum_{j=1}^{M}  v_{j}^{(1)}\sigma (w_{j}^{(1)}*x_0)\]
+	
+	
+	Then, plug $Q_1$ into (\ref{eq:trial_example1}) and get:
+	
+	\[u_{\mathrm{trial}}(x_{1})=  u_{trial}(x_{0}) + hQ_1(w^{(1)},v^{(1)},x_0)\]
+	
+		\item 
+	Put second mesh point to NN to approximate the derivative of $u(x_1)$ 
+	
+	\[Q_1(w^{(1)},v^{(1)},x_1)=  \sum_{j=1}^{M}  v_{j}^{(1)}\sigma (w_{j}^{(1)}*x_1)\]
+	
+		
+	Then, plug $Q_1$ into (\ref{eq:trial_example1}) and get:
+	
+	\[u_{\mathrm{trial}}(x_{2})=  u_{\text{trial}}(x_{1}) + hQ_1(w^{(1)},v^{(1)},x_1)\]
+	
+  
+	
+  \[\dots\]
+  
+	 \[Q_{100}(w^{(1)},v^{(1)},x_{100})=  \sum_{j=1}^{M}  v_{j}^{(1)}\sigma (w_{j}^{(1)}*x_{100})\]
+	 and
+	\[u_{\text{trial}}(x_{100})=  u_{\text{trial}}(x_{99}) + hQ_{100}(w^{(1)},v^{(1)},x_{100})\]
+	        \end{enumerate}
+	We repeat the process of iteration until we finish calculating all of the $x_i$ where $i=\{1, \dots, 100\}$ mesh points in the domain.    
+	
+
+	\item After initializing the computation of the derivative of $u(x_i)$, $i=\{0, \dots, N\}$ in the iteration, we update the weights in NN by minimizing the residual $E$ for the next iteration. 
+		\[E(w^{(1)},v^{(1)};\bar{u}(\bar{x})) = \sum_{i=1}^{N}\left \| \hat{u}_{i+1} - (\hat{u}_{i}+hQ_{i}) \right\|^{2}\]
+		
+	where $u_{\text{trial}}(x_i)$ is the computed solutions by  (\ref{eq:trial_example1}) and $u_i$ is the value obtained from plugging $Q_i$ and $x_i$ into original equations.
+	
+	
+	\item Because we have five hidden units in one hidden layer, so we need to update the weights from inner layer to hidden layer $v^{(r)} = (v_1, \dots, v_5)$ and $w^{(r)} = (w_1, \dots, w_5)$, $r=\{1, \dots, 1000\}$. We use stochastic gradient descent to optimize the weights for the next iteration. 
+	
+	%Take the weights for inner layer to first hidden unit $v_{1}^{(1)}$ and hidden unit to output layer $w_{1}^{(1)}$ for example.
+	
+	\begin{equation}
+	\frac{\partial E}{\partial v_0^{(1)}}(w^{(2)},v^{(2)}) =   \sum_{i=1}^{N} \frac{\partial E}{\partial Q_{i}}(w^{(1)},v_{0}^{(1)})  \frac{\partial Q_{i}}{\partial v_{0}^{(1)}}
+	\label{eq:updateV_example1}
+	\end{equation}
+	
+	\begin{equation}
+	\frac{\partial E}{\partial w_{0}^{(1)}}(w^{(2)},v^{(2)}) =  \sum_{i=1}^{N} \frac{\partial E}{\partial Q_{i}}(w_{0}^{(1)},v^{(1)}) \frac{\partial Q_{i}}{\partial w_{0}^{(1)}}
+	\label{eq:updateW_example1}
+	\end{equation}
+	
+\[\dots\]
+
+	\begin{equation}
+	\frac{\partial E}{\partial v_5^{(1)}}(w^{(2)},v^{(2)}) =   \sum_{i=1}^{N} \frac{\partial E}{\partial Q_{i}}(w^{(1)},v_{5}^{(1)})  \frac{\partial Q_{i}}{\partial v_{5}^{(1)}}
+	\label{eq:updateV5_example1}
+	\end{equation}
+	
+	\begin{equation}
+	\frac{\partial E}{\partial w_{5}^{(1)}}(w^{(2)},v^{(2)}) =  \sum_{i=1}^{N} \frac{\partial E}{\partial Q_{i}}(w_{5}^{(1)},v^{(1)}) \frac{\partial Q_{i}}{\partial w_{5}^{(1)}}
+	\label{eq:updateW5_example1}
+	\end{equation}
+	
+	\item We use (\ref{eq:updateV_example1}) to (\ref{eq:updateW5_example1}) to update the weights $v^{(2)}$ and $w^{(2)}$ for the next iteration.
+	\begin{equation}
+	\begin{aligned}
+	w_{j}^{(2)} = w_{j}^{(1)} - \gamma*\frac{\partial E_i}{\partial w_{j}^{(1)}} \\
+	v_{j}^{(2)} = v_{j}^{(1)} - \gamma*\frac{\partial E_i}{\partial v_{j}^{(1)}}
+	\end{aligned}
+	\label{eq:updateVW_example1}
+	\end{equation}
+	
+	where $\gamma$ is the learning rate for NN.
+		
+	\end{enumerate}
+		\medspace \noindent
+	We use the new weight getting from (\ref{eq:updateVW_example1}) and go back to step$2$ until finishing 1000 iterations. 
+	Figure \ref{fig: euler1_ode} displays the actual and computed solution of $u _t(x_i)$ corresponding to the domain.
+
+	\medspace \noindent
+	\textbf{Problem 1.2} Consider the nonlinear function:
+	
+	\[\frac{d}{dx} u + \frac{1}{5} u = e^{\frac{x}{5}}cos(x)\]
+
+	\medspace \noindent
+	Figure (\ref{fig: euler2_ode}) displays the actual and computed solution of $u _t(x_i)$, $i=\{0, \dots, N\}$ based on the different domain.
+	
+	\subsection{Formulation}
+
+	Approximation of $\frac{\mathrm{d}u}{\mathrm{d}x}(x_i)$ by Euler method is computed recursively by neural network. 
+	The Approximation solution $Q(x_i)$ can be found by minimizing the loss function:
+	We use NN to approximate $\frac{\mathrm{d}u}{\mathrm{d}x}(x_i)$. The output forward propogation of NN is:
+	\begin{equation}
+	Q_i (w^{(r)},v^{(r)},x_i)=  \sum_{j=1}^{M}  v_{j}^{r}\sigma (w_{j}^{(r)}*x_i), i = \{1, \dots, 100\}
+	\end{equation}
+	
+	\medspace \noindent
+	where $r$ is the number of iterations for NN. 
+	
+	\medspace \noindent
+	Figure \ref{fig:nn_ode_struct} expresses the diagram of NN with one hidden layer looking for the parameters for trial solution in ode and pde. 
+		\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.5\textwidth]{nn_ode_struct.png}
+		\caption{The diagram of Neural Network for computing the parameters of trial solution in ode $Q_{i}(x_i,p)$ with one hidden layer. }
+		\label{fig:nn_ode_struct}
+	\end{figure}
+	\medspace \noindent
+	After we use NN to approximate the derivative of $u$ at $x_i$, we insert it into a trial solution of $u$ at $x_i$:  
+	
+	\begin{equation}
+	\begin{aligned}
+	u_{\text{trial}}(x_{i+1}) &= u_{trial}(x_{i}) +h\frac{\mathrm{d}u_{\text{trial}}}{\mathrm{d}x}(x_i) \\
+	&=  u_{\text{trial}}(x_{i}) +hQ(w,v,x_i)
+	\end{aligned}
+	\end{equation}
+	
+	\medspace \noindent
+	where $h$ is the uniform step size of Euler method.  
+   
+
+    
+    \medspace \noindent
+   	\begin{equation}
+   \begin{aligned}
+   u_{\text{trial}}(x_{1}) &= u_{\text{trial}}(x_{0}) +hQ(x_0) \\
+   u_{\text{trial}}(x_{2}) &= u_{\text{trial}}(x_{1}) +hQ(x_1)\\
+   \dots \\
+   u_{\text{trial}}(x_{N}) &= u_{\text{trial}}(x_{N-1}) +hQ(x_{N-1}) \\
+   \end{aligned}
+   \end{equation}
+  
+    \medspace \noindent
+     where $N$ is the number of mesh points.  We repeat the process until finish calculating all the mesh points: 
+    
+     \medspace \noindent
+     We set each uniform step size $h$  in Euler method to be
+    
+    \begin{equation}
+      h = \frac{(b-a)}{N}
+    \end{equation}
+    \medspace \noindent
+    where $(a,b)$ is the range of domain. 
+    
+    \begin{figure}[b]
+    	\begin{subfigure}{.85\textwidth}
+    		\centering
+    		\includegraphics[width=0.5\textwidth]{euler1_ode_1.png}
+    	
+    	\end{subfigure}
+    	\begin{subfigure}{.85\textwidth}
+    	\centering
+    	\includegraphics[width=0.5\textwidth]{euler1_ode_2.png}
+    
+    	\end{subfigure}
+		\begin{subfigure}{.85\textwidth}
+		\centering
+		\includegraphics[width=0.5\textwidth]{euler1_ode_3.png}
+	
+		\end{subfigure}
+		\begin{subfigure}{.85\textwidth}
+			\centering
+			\includegraphics[width=0.5\textwidth]{euler1_ode_4.png}
+			
+		\end{subfigure}
+	\caption{The computed result of example(1) setup for  the interval, the size of mesh points and the step size of Euler method from a to d is $([0,1],100,0.01)$, $([0,2],200,0.01)$, $([0,3],300,0.01)$, $([0,4],400,0.1)$. } 
+	\label{fig: euler1_ode}
+    \end{figure}
+
+\begin{figure}[b]
+	\begin{subfigure}{.85\textwidth}
+		\centering
+		\includegraphics[width=0.5\textwidth]{euler2_ode_1.png}
+		
+	\end{subfigure}
+	\begin{subfigure}{.85\textwidth}
+		\centering
+		\includegraphics[width=0.5\textwidth]{euler2_ode_2.png}
+		
+	\end{subfigure}
+	\begin{subfigure}{.85\textwidth}
+		\centering
+		\includegraphics[width=0.5\textwidth]{euler2_ode_3.png}
+		
+	\end{subfigure}
+	\begin{subfigure}{.85\textwidth}
+		\centering
+		\includegraphics[width=0.5\textwidth]{euler2_ode_4.png}
+		
+	\end{subfigure}
+	\caption{The computed result of example(2) setup for  the interval, the size of mesh points and the step size of Euler method from a to d is $([0,1],100,0.01)$, $([0,2],200,0.01)$, $([0,3],300,0.01)$, $([0,4],400,0.01)$. } 
+	\label{fig: euler2_ode}
+\end{figure}
+
+\section{Second Order Differential Equation}
+
+\subsection{Examples}
+
+\textbf{Problem2.1} Given $x_i \in [0,2]$, $1 \leq i \leq N$. We would like to find the solution of $u(x)$ for the following equation.
+
+\[\frac{\mathrm{d}^2}{\mathrm{d}x^2} u + \frac{1}{5} \frac{\mathrm{d}}{\mathrm{d}x} u + u= -\frac{1}{5}e^{\frac{x}{5}}cos(x)\]
+
+\medspace \noindent
+with initial conditions $u(0)$ and $\frac{\mathrm{d}}{\mathrm{d}x} u(0)$, $x \in [0,1]$, $x_i=\{x_0, \dots, x_N\}$ where $N=100$. We set the number of iterate times to 1000 for training NN model and five hidden units in one hidden layer. A window size for neural network is one for each time.
+
+We use NN to approximate $\frac{\mathrm{d}^{2}u}{\mathrm{d}x^{2}}(x_i)$. The output forward propogation of NN is:
+
+\[Q_i (w^{(r)},v^{(r)},x_i)=  \sum_{j=1}^{M}  v_{j}^{(r)}\sigma (w_{j}^{(r)}*x_i), i = \{1, \dots, 100\}\]
+
+We integrate $\frac{\mathrm{d}^{2}}{\mathrm{d}x^{2}}\hat{u}$ to get $\frac{\mathrm{d}}{\mathrm{d}x}\hat{u_{i}}$
+
+\begin{equation}
+\frac{\mathrm{d}}{\mathrm{d}x}\hat{u} = \int_{x_{i}}^{x_{i+1}}Q_{i} dx
+\end{equation}
+
+Finally, we apply (\ref{eq:sobolev_trial}) to obtain $u_{i}$. We repeat the process of iteration until we finish calculating all of the $x_i$ where $i=\{1, \dots, 100\}$ mesh points in the domain.  
+Then, apply (\ref{eq:updateV_example1})-(\ref{eq:updateVW_example1}) from the step 3 to step 5 in Problem1.1 to update the weight for neural network parameters.
+
+
+
+\subsection{Formulation}
+
+Sobolev Spaces give weak solutions
+to differential equations.
+The weak solutions is easy to find but require that we loose the conditions for one functions to be the derivative of another. 
+We use neural network to estimate the weak derivative of ground truth function and  find the solutions of second order ordinary differential equations. 
+
+
+\begin{definition}
+	A function f is weak derivative for some function $u \in \mathrm{C}^{1}(\Omega)$ is defined by integrating against an arbitrary $\phi \in \mathrm{C}^{\infty}(\Omega)$ . We can integrate by parts to obtain the following:
+
+			\[\int_{\Omega}u \frac{\partial \phi}{\partial x_{i}} dx
+			=  -  \int_{\Omega} \frac{\partial u}{\partial x_{i}} \phi dx =   (-1)^{\alpha}\int_{\Omega} v_{i} \phi dx\]
+			
+	The function $v_i$ is the $i$-th weak derivative of $u$ and denoted as $\partial^{\alpha}u$
+	
+\end{definition}
+
+\begin{definition}
+	We define Sobolev space $W^{k,p}$ consists of all functions $u$ for every $1\leq p\leq \infty$ and for every $k\in \mathbb{N}$, $m \geq 1$: 
+	\[W^{k,p} = \{u \in \mathbf{L}^{p} |  \partial _{x}^{\alpha} u \in \mathbf{L}^{p}(\Omega), 1 \leq i \leq d, \forall \alpha \in \mathbb{N}^{d},|\alpha| \leq m \}\]
+	
+
+	 \medspace \noindent
+	and we denote the corresponding norm:
+	\begin{equation}
+     	\left|u\right|_{W^{k,p}}=\langle u,u\rangle_{W^{k,p} }= \left(\sum_{|\alpha| < k}\int_{\Omega} |\partial^{\alpha} u|^{p}\right)^{\frac{1}{p}}
+	\end{equation}
+   \medspace \noindent
+   where $\alpha$ used to concisely denotes the order of partial differential operator. 
+\end{definition}
+
+\begin{theorem}
+	(Riesz's Representation Theorem in $W^{1,p}$) Let $1 \leq p \leq \infty$ and let $p'=\frac{p}{p-1}$. Then, every $\mathrm{L} \in W^{1,p}$ can be characterized in the following way:\\
+	There exists $\{v_0, \dots, v_N\} \in \mathrm{L}^{p'}$ such that:
+	\[\langle u,v\rangle_{1,\Omega} = \int_{\Omega}\left(uv_{0}+\sum_{i=1}^{d}\partial_{x_i} u \partial_{x_i} v\right)dx\]
+\end{theorem}
+
+We are going to find the weak solutions to the equations. We integrating the $Lu=f$ against $v \in C_{c}^{\infty}(\Omega)$. Our goal is to find a function u satisfying
+\begin{equation}
+\int_{\Omega} \left(\sum_{i,j=1}^{n}a^{i,j}(x)u_{x_i}v_{x_j}+\sum_{i,j=1}^{n}b^{i}(x)u_{x_i}v + c(x)uv\right) dx = \int_{\Omega}fv dx, \forall v \in C_{c}^{\infty}
+\end{equation}
+ \medspace \noindent
+We used neural network to estimate $\frac{\mathrm{d}^{2}}{\mathrm{d}x^{2}}u$, so we get:
+
+\begin{equation}
+\frac{\mathrm{d}^{2}}{\mathrm{d}x^{2}}\hat{u} = Q_{i} 
+\end{equation}\label{eq:sobolev_trial}
+ 
+ We integrate $\frac{\mathrm{d}^{2}}{\mathrm{d}x^{2}}\hat{u}$ to get $\frac{\mathrm{d}}{\mathrm{d}x}\hat{u_{i}}$
+ 
+ \begin{equation}
+\frac{\mathrm{d}}{\mathrm{d}x}\hat{u_{i}} = \int_{x_{i}}^{x_{i+1}}Q_{i} dx
+ \end{equation}
+ 
+ Finally, we apply (\ref{eq:sobolev_trial}) to obtain $u_{i}$. 	
+ 
+ \begin{equation}
+ \begin{aligned}
+ u &= \left(\int_{x_{i}}^{x_{i+1}} \left|Q_{i} \right|^{2} dx+\int_{x_{i}}^{x_{i+1}} \left|Q_{i}x \right|^{2} dx +
+ \int_{x_{i}}^{x_{i+1}} \left|\frac{1}{2}Q_{i}x^{2} \right|^{2} dx
+  \right)^{\frac{1}{2}} \\
+ &=\sqrt{Q_{i} ^{2}h^{5}\frac{1}{20} + \frac{1}{2}Q_{i}^{2}h^{2} + Q_{i}^{2}h}
+\end{aligned}
+ \end{equation}
+
+where h is the range from $x_{i}$ to $x_{i+1}$. 
+
+The loss function for neural network to minimize is 
+
+\begin{equation}
+E(w^{(1)},v^{(1)};\bar{u}(\bar{x})) = \sum_{i=1}^{N}\left \|  \frac{\mathrm{d}^{2}u}{\mathrm{d}x^{2}}\left(x_{i},\hat{u},\frac{\mathrm{d}}{\mathrm{d}x}\hat{u}\right)- \frac{\mathrm{d}^{2}}{\mathrm{d}x^{2}}\hat{u} \right\|^{2}
+\end{equation}
+
+	
+	
+	
+	
+
+	
+	
+	
+\end{document}

@@ -23,16 +23,20 @@ class Neural_Network(object):
         #return self.right(x) - psy * self.left(x) #(1)
 
 
-    def forward(self, xi,W1,W2):
+    def forward(self, x, y, W1,W2):
         #forward propagation through our network
-
+        input = [x,y]
         self.z = np.dot(
-            xi,
-            W1[0])  # dot product of X (input) and first set of 3x2 weights
+            input,
+            W1)  # dot product of X (input) and first set of 3x2 weights
         self.z2 = self.sigmoid(self.z)  # activation function
         self.z3 = np.dot(W2.T,self.z2)
 
         return self.z3
+
+    def dy_forward(self,h,x,y,W1,W2):
+
+        return W1[h]*self.sigmoidPrime(self.z[h],1)*W2[h]
 
     def sigmoid(self, s):
         # activation function
@@ -45,23 +49,32 @@ class Neural_Network(object):
         if k == 2:
             return self.sigmoidPrime(s,1)-2*self.sigmoidPrime(s,1)*self.sigmoid(s)
 
-    def trial_sol(self,xi,o,ana,total_K):
-        if total_K == 1:
-            return ana[0] +o*xi
-        if total_K == 2:
+    def dirich(self,x,y):
 
-            return ana[0] - ana[1]*xi + psy_analytic(1,0)*xi + xi*o - o*xi**2
+        return (1-x)*self.trial_sol(0,y,2)+x*self.trial_sol(1,y,2)+(1-y)*self.trial_sol(x,0,2)((1-x)*self.trial_sol(0,0,2)+x*self.trial_sol(1,1,2)) \
+                + (y)*self.d_trial_sol(x,1,2)((1-x)*self.trial_sol(0,0,2)+x*self.trial_sol(1,1,2))
 
-    def d_trial_sol(self, xi, o, d_oxi,ana, total_K):
+    def mixed(self,x,y):
+
+        return (1-x)*self.trial_sol(0,y,2)+x*self.trial_sol(1,y,2)+self.trial_sol(x,0,2)((1-x)*self.trial_sol(0,0,2)+x*self.d_trial_sol(1,1,2)) \
+                + (y)*self.d_trial_sol(x,1,2)((1-x)*self.trial_sol(0,0,2)+x*self.d_trial_sol(1,1,2))
+
+    def trial_sol(self,x,y,total_D):
+        if total_D == 2:
+            # for dirichlet
+            return self.dirich(x,y)+x*(1-x)*y*(1-y)*self.forward(x,y)
+            # for mixed
+            return self.mixed(x,y)+x*(1-x)*y*(self.forward(x,y,W1,W2)-self.forward(x,1,W1,W2)-self.dy_forward(h,x,1,W1,W2))
+
+
+    def dy_trial_sol(self, xi, o, d_oxi,ana, total_K):
         #d_Psyt = np.zeros(total_K)
 
         if total_K == 1:
             d_Psyt = o + xi * d_oxi
         if total_K == 2:
-            #d = ini[0] + 2*xi*o + xi**2 * d_oxi
-            #d = -ini[0] + KN.psy_analytic(1,1) + o - 2*o + 2*xi* d_oxi
             d_Psyt= -ana[0] + psy_analytic(1,0) + o +xi*d_oxi -2*xi*o -xi**2*d_oxi
-        #d_Psyt[total_K-1] = d
+
 
         return d_Psyt
 
@@ -166,6 +179,7 @@ nx=10
 total_K = 2
 hiddenSize = 5
 x_space = np.linspace(0, 2, nx) #discretize space
+y_space = np.linspace(0, 1, nx)
 ana_space = psy_analytic(x_space,0)
 bc = psy_analytic(x_space[-1],0)
 total_err = np.zeros(1000)

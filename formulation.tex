@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[a4paper, total={7in, 10in}]{geometry}
+
+\begin{document}
+	\medskip \noindent
+I found the trial solution from Largis is obtaining from integrating the solution of neural network. For example, in first order differential equation is
+	\[\int Q(v,w,\bar{x}) = xQ(v,w,\bar{x}) + c \]
+	where $c$ is initial condition and $Q$ is the output of neural network.
+	Therefore, the output of neural network is a approximation to 
+	\[\triangledown_x u(x), \in \mathbb{R}, x \in \mathbb{R}^N, n\in\{0,1, \dots , N\}\]
+	instead of $u(x)$. 
+	
+	\section{Formulation}
+	%I use Neural network to approximate the $f_t$ in Euler method.  Then, calculate the trial solution in each iteration this time. 
+	\subsection{First Order Differential Equation}
+	\subsubsection{Neural Network-based Euler Method}
+	Approximation of $\triangledown_x u(x)$ in Euler method is computed recursively by neural network. 
+	The Approximation solution $Q(x_i)$ can be found by minimizing the loss function:
+	\begin{equation}\label{eq:ode_total_error}
+	E = \left \|  u_{trial}(x_i)-u(x_i, Q(x_i))\right \|^2
+	\end{equation}
+    %Therefore, we can see $\triangledown_x u(x)$  as an constant and integrate it to obtain the higher dimension problem. 
+	Therefore, we can insert $\triangledown_x u(x)$ to Euler method to find the $u_{trial}(x)$. 
+	\begin{equation}
+	\begin{aligned}
+	 	u_{trial}(x_{i+1}) &= u_{trial}(x_{i}) -h\triangledown_t u(x_i) \\
+	 	            &= u_{trial}(x_{i})-hQ(x_i)
+	 \end{aligned}
+	\end{equation}
+    where h is the uniform step size. 
+    
+    \medspace \noindent
+    At the next step we have
+    \[u_{trial}(x_{i+2})= u_{trial}(x_{i+1})-hQ(x_{i+1})\]
+    \medspace \noindent
+    
+    \section{}
+	 
+	
+%\subsubsection{Neural Network with Backward Stochastic Differential Equation}
+%They formulate the PDE problem as a form of Stochastic Differential Equation and approximate $\triangledown_x u(t,x_t)$ by neural network.
+
+%\medskip \noindent
+%Let $\hat{u_t}=u_{trial}(t,x)$ be a dynamic $\hat{u}$ starts at time t in x.  The range of time horizon $T$ corresponds to the index of domain $\Omega$ in our method. 
+%\medskip \noindent
+%By Ito formula 
+%\[d\hat{u_t} = -f(t,x_t,y_t, \triangledown_x u(t,x_t))dt + \triangledown_x u(x_i)\sigma(x_t)dW_{t}\]
+%where $W$ denotes Brownian motion. 
+
+%\medskip\noindent
+%If $u_{trial}(t,x_t)$ solve the equation, we obtain for $\hat{u_t}=u(t,x_t)$ and $Z_{t}=\triangledown_x u(x_i)\sigma(x_t)dW_{t}$.
+%\[d\hat{u_t}=-f(t,x_t,y_t, \triangledown_x u(t,x_t))dt + Z_{t}dW_{t}\]
+%\medskip \noindent
+%Therefore, the way to approximate $u_{trial}$ in their paper is:
+
+%\begin{equation}
+%\begin{aligned}
+%Y_{t_{n+1}} &= Y_{t_{n}} + \int_{t_n}^{t_{n+1}}f(Y_s,Z_s)ds - \int_{t}^{T}\langle  Z_s,dW_s \rangle \\
+%&\approx  Y_{t_{n}} - f(Y_{t_{n}},Z_{t_{n}})((t_{n+1})-(t_{n})) + Z_{t_{n}}dW_{t_{n}}((t_{n+1})-t_{n})
+%\end{aligned}
+%\end{equation}
+
+	
+	
+	
+\end{document}

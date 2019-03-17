@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import math
+from sympy import symbols, diff
 
 class Neural_Network(object):
 
@@ -17,22 +18,31 @@ class Neural_Network(object):
         #return np.exp(-1*x/5)*np.cos(x)#(2)
         #return x**3 + 2.*x + x**2 * ((1. + 3.*x**2) / (1. + x + x**3))#(1)
 
-    def func(self,x,ts, d_ts, d):
-        return self.right(x)-ts*self.left(x,1)-d_ts * self.left(x,2) #(3)
+    def func(self,x, y,u,u_x=0, u_y=0):
+        return np.exp(-x)*(x-2+y^3+6*y)
+        #return self.right(x)-ts*self.left(x,1)-d_ts * self.left(x,2) #(3)
         #return self.right(x) - ts * self.left(x)#(2)
         #return self.right(x) - psy * self.left(x) #(1)
 
 
-    def forward(self, xi,W1,W2):
+    def forward(self, x, y, W1,W2):
         #forward propagation through our network
-
+        input = [x,y]
         self.z = np.dot(
-            xi,
-            W1[0])  # dot product of X (input) and first set of 3x2 weights
+            input,
+            W1)  # dot product of X (input) and first set of 3x2 weights
         self.z2 = self.sigmoid(self.z)  # activation function
         self.z3 = np.dot(W2.T,self.z2)
 
         return self.z3
+
+    def dy_forward(self,h,x,y,W1,W2):
+
+        return W1[h]*self.sigmoidPrime(self.z[h],1)*W2[h]
+
+    def dx_forward(self,h,x,y,W1,W2):
+
+        return W1[h]*self.sigmoidPrime(self.z[h],1)*W2[h]
 
     def sigmoid(self, s):
         # activation function
@@ -45,40 +55,57 @@ class Neural_Network(object):
         if k == 2:
             return self.sigmoidPrime(s,1)-2*self.sigmoidPrime(s,1)*self.sigmoid(s)
 
-    def trial_sol(self,xi,o,ana,total_K):
-        if total_K == 1:
-            return ana[0] +o*xi
-        if total_K == 2:
+    def F(self,a,g0,g1):
+        return (1-a)*g0+a*g1
 
-            return ana[0] - ana[1]*xi + psy_analytic(1,0)*xi + xi*o - o*xi**2
+    def X0(self,a):
+        uy0=self.u_a(0,0)
+        uy1=self.u_a(1,0)
+        return self.u_a(a,0)-self.F(a,u_a(uy0,uy1))
 
-    def d_trial_sol(self, xi, o, d_oxi,ana, total_K):
+    def Y0(self,a):
+        uy0=self.u_a(0,1)
+        uy1=self.u_a(1,1)
+        return self.u_a(a,0)-self.F(a,u_a(uy0,uy1))
+
+
+
+    def dirich(self,x,y,u_a):
+
+        return self.u_a(x,0)-self.F(x,u_a(0,y),u_a(1,y))+ \
+               self.F(y,X0(x),Y0(y))
+
+    def mixed(self,x,y):
+
+        return self.F(x,u_a(0,y),u_a(1,y))+X0(x)+Y0(y)
+
+    def dxy_trial_sol(self,x,y,ana_space):
+
+        # for dirichlet
+        return self.dirich(x,y,ana_space)+x*(1-x)*y*(1-y)*self.forward(x,y)
+        # for mixed
+        return self.mixed(x,y,ana_space)+x*(1-x)*y*(self.forward(x,y,W1,W2)-self.forward(x,1,W1,W2)-diff(self.forward(x,1,W1,W2),y)
+    def trial_sol(self,x,y,o,ana_space):
+
+        # for dirichlet
+        return self.dirich(x,y,ana_space)+x*(1-x)*y*(1-y)*o
+        # for mixed
+        return self.mixed(x,y,ana_space)+x*(1-x)*y*(o-o-diff(self.dxy_forward(x,1,W1,W2),y)
+
+
+    def dy_trial_sol(self, xi, o, d_oxi,ana, total_K):
         #d_Psyt = np.zeros(total_K)
 
         if total_K == 1:
             d_Psyt = o + xi * d_oxi
         if total_K == 2:
-            #d = ini[0] + 2*xi*o + xi**2 * d_oxi
-            #d = -ini[0] + KN.psy_analytic(1,1) + o - 2*o + 2*xi* d_oxi
             d_Psyt= -ana[0] + psy_analytic(1,0) + o +xi*d_oxi -2*xi*o -xi**2*d_oxi
-        #d_Psyt[total_K-1] = d
+
 
         return d_Psyt
 
     def dd_trial_sol(self, xi, o, d_oxi, dd_oxi):
         return -2*o + 2*d_oxi -4*xi*d_oxi + xi*dd_oxi - xi**2*dd_oxi
-
-
-
-
-
-    def Echain(self, xi, d_oxi, o, total_K):
-        if total_K == 1:
-            return(1-(-xi*self.left(xi)))
-        if total_K == 2:
-            #return 2*xi + 2*xi*o + np.square(xi)*d_oxi
-            return -2+xi-xi**2-1/5.0
-
 
     def backward(self, X, ana_space, W1, W2, r, total_K):
 
@@ -92,31 +119,39 @@ class Neural_Network(object):
 
         for i in xrange(nx):
             xi = x_space[i]
-            o = self.forward(xi,W1,W2)
+            yi = y_space[i]
+            o = self.forward(xi,yi, W1,W2)
 
-            trial_psy = self.trial_sol(xi, o, ana_space, total_K)
+            u_trial = self.trial_sol(xi, yi, o, ana_space)
 
             d_oxi = 0
+            d_oyi = 0
             dd_oxi = 0
-            for h in xrange(hiddenSize):
-                d_oxi += W1[0][h]*self.sigmoidPrime(self.z[h],1)*W2[h]
+            dd_oyi = 0
+            d_ux_trial = np.zeros_like(X)
+            d_uy_trial = np.zeros_like(Y)
+            dd_ux_trial = np.zeros_like(X)
+            dd_uy_trial = np.zeros_like(Y)
+            '''for h in xrange(hiddenSize):
+                d_oxi += W1[0][h]*diff(self.sigmoid(self.z[h]),self.z[h])*W2[h]
+                d_oyi += W1[0][h]*diff(self.sigmoid(self.z[h]),self.z[h])*W2[h]
 
             for h in xrange(hiddenSize):
-                dd_oxi += W1[0][h]*W1[0][h]*W2[h]*self.sigmoidPrime(self.z[h],2)
+                dd_oxi += W1[0][h]*W1[0][h]*W2[h]*diff(self.sigmoid(self.z[h]),self.z[h])*diff(self.z[h],x)
+                dd_oyi += W1[0][h]*W1[0][h]*W2[h]*diff(self.sigmoid(self.z[h]),self.z[h])*diff(self.z[h],x)'''
 
-            d_trial_psy = self.d_trial_sol(xi,o,d_oxi,ana_space, total_K)
-            dd_trial_psy = self.dd_trial_sol(xi,o,d_oxi, dd_oxi)
+            d_ux_trial[i] = diff(self.dxy_trial_sol(xi, o, ana_space),x)
+            d_uy_trial[i] = diff(self.dxy_trial_sol(xi, o, ana_space),y)
+            dd_ux_trial[i] = diff(self.dxy_trial_sol(xi, o, ana_space),x,2)
+            dd_uy_trial[i]= diff(self.dxy_trial_sol(xi, o, ana_space),y,2)
             d_out_xi[i] = d_oxi
 
-            f = self.func(xi, trial_psy, d_trial_psy, total_K)
-            err[i] = (dd_trial_psy - f)
+            f = self.func(xi, yi, u_trial, d_ux_trial=0, d_uy_trial=0)
+            err[i] = (dd_ux_trial+dd_uy_trial - f)
             e += np.square(err[i])
-            #err.append(er)
-            #err_sqr += np.square(d_trial_psy - f)
 
             loss_sum += np.square(trial_psy - ana_space[i])
 
-        #error = np.array(err)
         d_E_out = np.zeros_like(err)
         #update weights
         for i in xrange(hiddenSize):
@@ -125,9 +160,14 @@ class Neural_Network(object):
             d_E_wh = 0
             for j in xrange(len(x_space)):
                 xi = x_space[j]
-                d_E_out[j] = (err[j])*self.Echain(xi,d_out_xi[j],o, total_K)
-                d_E_wo += np.dot(d_E_out[j],self.sigmoid(np.dot(xi,W1[0][i])))
-                d_out_v = W2[i].dot(self.sigmoidPrime(np.dot(xi,W1[0][i]),1)*xi)
+                yi = y_space[j]
+                dN_err = diff(self.trial_sol(xi, yi, ana_space),o,2)+diff(self.trial_sol(xi, yi, ana_space),o,2) - \
+                self.func(xi, yi, u_trial, d_ux_trial=0, d_uy_trial=0).diff(o)
+                d_E_out[j] = (err[j])*dN_err
+
+                d_E_wo += np.dot(d_E_out[j],self.sigmoid(self.z[i]))
+                h_units = np.dot(np.dot(x,W1[0][i]),np.dot(y,W1[1][i])
+                d_out_v = W2[i].dot(self.sigmoid(np.dot(h_units)).diff(x)*xi)
                 d_E_wh += d_E_out[j]*d_out_v
 
             W2[i] -= r*d_E_wo
@@ -147,13 +187,13 @@ class Neural_Network(object):
         print "Input (scaled): \n" + str(xPredicted)
         print "Output: \n" + str(self.forward(xPredicted))
 
-def psy_analytic(x, k):
-    if k == 0:
-        return np.exp(-x/5.0)*np.sin(x)#(3)
+def psy_analytic(x,y):
+
+    return np.exp(-x)*(x+y**3)#(pde1)
+    #return np.exp(-x/5.0)*np.sin(x)#(3)
         #return np.exp(-x/5)*np.sin(x) #(2)
     #return (np.exp((-x**2)/2.)) / (1. + x + x**3) + x**2 #(1)
-    if k == 1:
-        return np.exp(-x/5)*np.sin(x)*(-1/5)+ np.exp(-x/5)*np.cos(x)#(3)
+    #return np.exp(-x/5)*np.sin(x)*(-1/5)+ np.exp(-x/5)*np.cos(x)#(3)
 
 
 
@@ -165,8 +205,9 @@ max_ittr =500
 nx=10
 total_K = 2
 hiddenSize = 5
-x_space = np.linspace(0, 2, nx) #discretize space
-ana_space = psy_analytic(x_space,0)
+x_space = np.linspace(0, 1, nx) #discretize space
+y_space = np.linspace(0, 1, nx)
+ana_space = psy_analytic(x_space,y_space)
 bc = psy_analytic(x_space[-1],0)
 total_err = np.zeros(1000)
 
