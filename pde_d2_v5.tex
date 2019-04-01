@@ -18,13 +18,13 @@
 	In our paper, we consider a class of quasilinear parabolic partial differential equations where $u$ is defined over $\Omega_T:\Omega\times [0,T]$, where $\Omega\subset\Bbb R^n$ and $T>0$:
 	\begin{equation}
 	\begin{cases}
- Lu=\frac{\partial u}{\partial t} +A(u) =\frac{\partial u}{\partial t}+{\rm div}(a(x,t,u,Du))+a(x,t,u,Du)=0 & \text{for $(x,t) \in \Omega_{T}$}\\
+ \frac{\partial u}{\partial t} +A(u) =\frac{\partial u}{\partial t}+{\rm div}(a(x,t,u,Du))+a(x,t,u,Du)=0 & \text{for $(x,t) \in \Omega_{T}$}\\
 u(0,x) = u_{0}(x), & \text{for $x \in \Omega$} \\
 u(t,x) = q(t,x), & \text{ for $x \in \Omega_{T}$} \\
 	\end{cases}
 	\label{eq:cauchy}
 	\end{equation}
-	We write the operator $Lu$ as $f$. The solution $u(x,t)$ can be approximated by multilayered neural networks with respect to the loss function $J$.
+	We write the operator in (\ref{eq:cauchy}) as $f$. The solution $u(x,t)$ can be approximated by multilayered neural networks with respect to the loss function $J$.
 Define $Q$ below as the set of all functions implemented by neural networks with one hidden layer, $m$ hidden units and $\textit{l}$ output unit given values at $k$ input units at time t:
 	\begin{equation}
 	Q(\psi,x,T)=\left \lbrace q(\psi,x,t): \mathbb{R}^{\ell+n+1} \rightarrow \mathbb{R}^{\textit{l}}:
@@ -44,7 +44,6 @@ The positive integer $k$ is also the number of dimensions of PDEs.
 		\item $\Omega$ is a bounded domain in $E_{n}$.
 		\item S is the subset of $\Omega$
 		\item $\Omega_{T} = H_{T} \cap \Omega$ where $H_{T}$ is the open ball in $E_{n}$ of radius $T$, i.e. the sets of points $(x,t)$ of $E_{n+1}$ with $x \in \Omega$, $t \in (0,T)$
-		\item $W^{\textit{l},\textit{l}}_{p}(\Omega_{T})$ for \textit{l} integral is the Banach space consisting of the elements of $L^{p}(\Omega_{T})$ having generalized derivatives of the form $D^{r}_{t}D^{s}_{x}$ with any $r$ and $s$ satisfying the inequality $2r+s \leq 2\textit{l}$.
 		\item $u(x,t) \in \Omega_{T}$ is the classical solutions of (\ref{eq:cauchy})
 		\item $\mu(t)=(\mu_1, \dots, \mu_{n})$ is input measure environment on $\Omega_{T}$.
 		\item $\nu(t)$ is a positive continuous function defined for $t \leq 0$
@@ -55,7 +54,6 @@ The positive integer $k$ is also the number of dimensions of PDEs.
 		\item Let $j \in \mathbb{N}$ with $j \leq 2$ be the number of hidden units in the m-dimensional hidden layer.
 		\item Define the inner weights and output weights as $w \in R^m$ and $\Phi \in R^m$.
 		\item Bias $\theta \in \mathbb{R}$ is fixed.
-		\item $I^{n}(I=[0,1])$ is the unit $n-$dimensional cube. It defines the space of one-output networks space.
 		\item The loss function $J$ measures how well the approximate solutions $q(\psi,x,t)$ satisfies $f(x,t,q,Dq)$ in (\ref{eq:cauchy}).
 \end{enumerate}
 		\subsection{Definition of the function space}
@@ -104,13 +102,22 @@ Kolmogorov's generalization becomes the current neural network approximate theor
 Moreover, functions $\phi_{i,j}$ are universal for the given dimension $n$; they are independent of f.
 	\end{theorem}
 %The original Kolmogorov superposition theorem cannot be used in the algorithm in numerical calculation, because the inner function is highly non-smooth. To make functions $\Phi_{q}$ and $\psi_{q,p}$ in (\ref{eq:komo}) smooth, Kurkova \cite{kurkova}  substituted $\Phi_{q}$ and $\psi_{q,p}$ by  staircase-like functions of any sigmoid type which is continuous with closed interval.
+
+
+We investigat the diagonal sequence property in Banach space with multilayered neural network. 
+
+\begin{theorem}
+	Consider a sequence of functions $\{q_{h}(\psi,x,t)\}$ defines on the positive integers that take values in reals where $h = 1,2, \dots m$ indicates the number of layer in the multilayer neural network model. Assume that this sequence is uniformly bounded, i.e. there is a positive constant that 
+
+	\[q_{h}(x)| \leq C\]|
+	
+	for all $x \in \mathbb{N}$. Then, there exists a subsequence $h(j)$ such that $f_{h(j)}$ converges for all $x \in  \mathbb{N}$.
+\end{theorem}
 By Theorem 1,2 in \cite{hornik} and Theorem 1 in \cite{cybenko}, we show that neural networks are dense in $C^{d}(\Omega_{T})$.
-
-
 \begin{lemma}
 	If $\psi$ is bounded and nonconstant function, then $q(\psi,x,t)\in L^p(\mu)$ is dense in $C(\Omega_{T})$ for all compact subsets $S$ of $\mathbb{R}^{k'}$ where $C(\Omega_{T})$ is the space of all continuous functions on $\Omega_{T}$. In other words, given any $g \in C(\Omega_{T})$ and $\epsilon > 0$, there is a sum $G(x)=\psi(wx'+\theta)$, for which
 	\begin{equation}
-	\left|G(x)-g(x)\right| < \epsilon \text{ for all $x\in \Omega_{T}$}
+	\left|G(x)-h(x)\right| < \epsilon \text{ for all $x\in \Omega_{T}$}
 	\end{equation}
 	 \label{dense_set}
 \end{lemma}
@@ -160,26 +167,48 @@ C^{d,p}(\mu) = \{ u \in C^{d}(\Omega_{T}): ||u||_{d,p,\mu} < \infty \}
 \end{equation}
 Therefore, it guarantees the loss function is smooth functional approximation.
 
-
+We follow the proof from Theorem 2.2 in \cite{kurkova} and Theorem 7.3 in \cite{sirignano} to prove that the multi-layer neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f)$. 
+Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
 
 \begin{theorem}  \label{nn_proof}
-	Let $n \in \mathbb{N}$ with $n \geq 2$, $\psi: \Omega_{T} \rightarrow \textit{I}$ be a sigmoid function. $q \in C^{d}(I^{n}))$, and $\epsilon$ be a positive real number. 
+	Let $n \in \mathbb{N}$ with $n \geq 2$, $\psi: \Omega_{T} \rightarrow \textit{I}$ be a sigmoid function. $q \in C^{d}(\Omega_{T}))$, and $\epsilon$ be a positive real number. 
 Then, there exist $k \in \mathbb{N}$ and functions $\Phi_{i}$ and $\phi_{i,j} \in Q(\psi,x,T)$ such that
 	\begin{equation}
-	\left|f(\psi,x,t)-\sum_{j=1}^{2m}\Phi_{j}\left(\sum_{i=1}^{n}\phi_{i,j}(x_p)\right)\right| < \epsilon \text{ for every } (x_1, \dots, x_n) \in I^{n}
+	\left|q(\psi,x,t)-\sum_{j=1}^{2m}\Phi_{j}\left(\sum_{i=1}^{n}\phi_{i,j}(x_p)\right)\right| < \epsilon \text{ for every } (x_1, \dots, x_n) \in I^{n}
 	\end{equation}
 	such that any continuous function defined on the n-dimension cube can be approximately well by a function belongs to $Q(\psi,x,T)$.
 \end{theorem}
-
 \begin{proof}
 
     By Kolmogorov's superposition theorem,
-    \[f(\psi,x,t)=\sum_{j=1}^{2m}\Phi_{j}\left(\sum_{i=1}^{n}\phi_{i,j}(x_i)\right).\]
+    \[q(\psi,x,t)=\sum_{j=1}^{2m}\Phi_{j}\left(\sum_{i=1}^{n}\phi_{i,j}(x_i)\right).\]
     Take $[a,b] \subset \Omega_{T}$ such that for every $i=1,\dots,n$, $j=1, \dots 2m+1$ and $\phi_{j,j}(\textit{I}^{n})\subseteq [a,b]$.
     The multilayer neural network is implemented in hidden layers with transfer function $\phi_{i,j}$ from input to the hidden layers and $\Phi_j$ from all of the hidden units to the output one.
 
-	
-	
+	%Assume first that $(u,\bigtriangledown_{x}u) \rightarrow f(t,x,u,\bigtriangledown_{x}u)$ is locally Lipschitz continuous\footnotemark  in $(u,\bigtriangledown_{x}u)$ with Lipschiz constant.
+	 %$f$ is the loss function and also the PDE function we aim to solve. This means that
+%	\footnotetext{Suppose $A \subset \mathbb{R}^{n}$ is open and $f : A \rightarrow \mathbb{R}^{n}$ is differentiable. A function is locally Lipschitz continuous if there exists a contant $K>0$ and $\delta > 0$such that $|x_1-x_2|>\delta$ implies $|q(x_1)-q(x_2)| \leq K |x_1-x_2|^{}$.}
+
+%	\begin{equation}\label{eq:lip}
+%	\left|f(t,x,u,\bigtriangledown_{x}u) - f(t,x,q,\bigtriangledown_{x}q)\right| \leq \left(|u|^{p_{1}/2} + |\bigtriangledown_{x}u|^{p_{2}/2} + |q(\psi,x,t)|^{p_{3}/2} + |\bigtriangledown_{x}q(\psi,x,t)|^{p_{4}/2}\right)\left(|u-q(\psi,x,t)| + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|\right)
+%	\end{equation}
+%	for some constants $0<p_{1},p_{2},p_{3},p_{4} < \infty$. 
+%We integrate (\ref{eq:lip}) and using H\"older inequality with exponents $r_{1}$, $r_{2}$:
+%	\begin{equation}
+%	\begin{aligned}
+%	&\int_{\Omega_{T}}\left| f(t,x,u,\bigtriangledown_{x}u) - f(t,x,q,\bigtriangledown_{x}q(\psi,x,t))\right|^{2} dv_{1}(t,x)  \\
+%	&\leq \int_{\Omega_{T}}\left(|u|^{p_{1}} + |\bigtriangledown_{x}u|^{p_{2}} + |q(\psi,x,t)|^{p_{3}} + |\bigtriangledown_{x}q(\psi,x,t)|^{p_{4}}\right)
+%	\left(|u-q|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|^{2}\right)dv_{1}(t,x) \\
+%	& \leq \left(\int_{\Omega_{T}}\left(|u|^{p_{1}} + |\bigtriangledown_{x}u|^{p_{2}} %+ |q(\psi,x,t)|^{p_{3}} + |\bigtriangledown_{x}q(\psi,x,t)|^{p_{4}}\right)^{r_{1}}dv_{1}(t,x)\right)^{1/r_{1}}  \\
+%	&\times \left(\int_{\Omega_{T}}\left(|u-q|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}} \\
+%	& \leq K  \left(\int_{\Omega_{T}}\left(|u-q|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}}
+	%&\leq K \left(\int_{\Omega_{T}}\left(|u|^{p_{1}} + |\bigtriangledown_{x}u|^{p_{2}} + |q(\psi,x,t)|^{\max \{p_{1}p_{3}\}} + |\bigtriangledown_{x}q(\psi,x,t)|^{\max \{p_{2},p_{4}\}}\right)^{r_{1}}dv_{1}(t,x)\right)^{1/r_{1}}\\
+	%&\times\left(\int_{\Omega_{T}}\left(|u-q(\psi,x,t)|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}}  \\
+	%&\leq K(\epsilon^{p_{1}}+\epsilon^{p_{2}}+sup|u|^{\max \{p_{1}p_{3}\}} + sup|\bigtriangledown_{x}u|^{\max \{p_{2}p_{4}\}} ) \leq \epsilon^{2}
+%	\end{aligned} \label{eq:lip_ineql}
+%	\end{equation}
+	%The last inequality is from (\ref{eq:m_dense})
+	Hornik in Theorem 3 \cite{hornik} presented that if the activation function $\psi \in C^{d}(\Omega_{T})$ is nonconstant and bounded, $q(\psi,x,t) \in Q(\psi,x,T)$ is uniformly m-dense on the compacts of $C^{d}(\mathbb{R}^{k})$ and dense $C^{m,p}(q(\psi,x,t))$ with the topology of uniform convergence.
 
 Because $u$ and $q(\psi,x,t)$ come from $C^{d}(\Omega_{T})$, 
 we can use Lemma \ref{dense_set} for every $j = 1, \dots 2m+1$ to obtain $g_{j} \in Q(\psi,x,T)$ such that
@@ -190,26 +219,31 @@ we can use Lemma \ref{dense_set} for every $j = 1, \dots 2m+1$ to obtain $g_{j} 
 	%Since $g_{j}$ is uniformly continuous, there exist $\delta$ such that
 	%\[\left|g_{j}(x)-g_{j}(y)\right| <\frac{\epsilon}{2m(2m+1)} \text{for every } x \in [a,b]
 	%\ \ \text{with } \left|x-y\right|<\delta \]
-	 
-		
+	 Let $\phi_{i,j}$ be $u$. We can get
+		\begin{equation}
+	\sup_{(t,x) \in \Omega_{T}} \left|\partial_{t} u- \partial_{t} q(\psi,x,t)\right| + \max_{|d| \leq 2} \left|\partial_{x}^{(d)} u- \partial_{x}^{(d)} q(\psi,x,t)\right| < \frac{\epsilon}{m(2m+1)}
+	\end{equation}
 	For every $i=1,\dots,n$, $j=1, \dots 2m+1$, there exist $h_{i,j} \in Q(\psi,x,T)$ such that for every $x \in \textit{I}$
 	\[\left|h_{i,j}(x)-\phi_{i,j}(x)\right|<\delta \].
 
-	Hence, for every $(x_1, \dots , x_n)\in \textit{I}^{n}$
-	\[	\left|\sum_{j=1}^{2m+1}g_{j}\left(\sum_{j=1}^{m}h_{i,j}(x_i)\right)-q(x_1,\dots,x_n)\right| < \epsilon\]
+%	Therefore, the ineqality (\ref{eq:lip_ineql}) becomes
+%	\begin{equation}
+%	K  \left(\int_{\Omega_{T}}\left(|u-q|^{2} + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|^{2}\right)^{r_{2}}dv_{1}(t,x)\right)^{1/r_{2}} \leq K\frac{\epsilon}{m(2m+1)}
+%	\end{equation}
 
 
 	%Hence, for every $(x_1, \dots , x_n)\in \textit{I}^{n}$
 %	\[	\left|\sum_{j=1}^{2m+1}g_{j}\left(\sum_{j=1}^{m}h_{i,j}(x_i)\right)-q(x_1,\dots,x_n)\right| < \epsilon\]
 \end{proof}
+
 We follow the proof from Theorem 2.2 in \cite{kurkova} and Theorem 7.3 in \cite{sirignano} to prove that the multi-layer neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f)$. 
 Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
 \begin{theorem}
 	Let the $L^{2}$ error $J(f)$ measures how well the approximate solution $q(\psi,x,t)$ satisfies the differential operator in the equation.  
-Let $q(\psi,x,t)$ be approaching solutions of  neural network which minimizes loss function $J(f(q,\triangledown_{x} q))$. 
-Using the results from the proof of Theorem 3 \cite{hornik}, for all $u \in C^{d}(I^{n}))$ and $\epsilon > 0$, such that
-\[q_i \in \textit{Q} \textrm{ such that } J(f) \rightarrow 0 \textrm{ as } m \rightarrow \infty \text{ and}\]
-\[ q_{i} \rightarrow u  \text{ as } m \rightarrow \infty.\] 
+	Let $q(\psi,x,t)$ be approaching solutions of  neural network which minimizes loss function $J(f(q,\triangledown_{x} q))$. 
+	Using the results from the proof of Theorem 3 \cite{hornik}, for all $u \in C^{d}(I^{n}))$ and $\epsilon > 0$, such that
+	\[q_i \in \textit{Q} \textrm{ such that } J(f) \rightarrow 0 \textrm{ as } m \rightarrow \infty \text{ and}\]
+	\[ q_{i} \rightarrow u  \text{ as } m \rightarrow \infty.\] 
 \end{theorem}
 
 \begin{proof}
@@ -246,17 +280,17 @@ Using the results from the proof of Theorem 3 \cite{hornik}, for all $u \in C^{d
 
 We use tensorflow to implement our multilayered model. The algorithm is tested on a class of high-dimensional PDEs. The results shows that the solution calculated from our model satisfies the $f$ in nonlinear PDEs (\ref{eq:cauchy}) to zero.
 
-\begin{figure}
-	\includegraphics[width=0.5\linewidth]{ode_d1.jpg}
-	\caption{First order ODE. The loss is the value of f in (\ref{eq:cauchy}). The value of loss function approaches to zero as the number of iteration of our model increase.}
-	\label{fig:ode_d1}
-\end{figure}
+%\begin{figure}
+%	\includegraphics[width=0.5\linewidth]{ode_d1.jpg}
+%	\caption{First order ODE. The loss is the value of f in (\ref{eq:cauchy}). The value of loss function approaches to zero as the number of iteration of our model increase.}
+%	\label{fig:ode_d1}
+%\end{figure}
 
-\begin{figure}
-	\includegraphics[width=0.5\linewidth]{ode_d2.jpg}
-	\caption{Second order ODE. The loss is the value of f in (\ref{eq:cauchy}). The value of loss function approaches to zero as the number of iteration of our model increase.}
-	\label{fig:ode_d2}
-\end{figure}
+%\begin{figure}
+%	\includegraphics[width=0.5\linewidth]{ode_d2.jpg}
+	%\caption{Second order ODE. The loss is the value of f in (\ref{eq:cauchy}). The value of loss function approaches to zero as the number of iteration of our model increase.}
+	%\label{fig:ode_d2}
+%\end{figure}
 
 
 \section{Literature Review}

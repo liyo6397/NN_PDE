@@ -8,11 +8,15 @@ from tensorflow.python.keras import layers
 MOMENTUM = 0.99
 EPSILON = 1e-6
 
-TF_DTYPE = tf.float64
+TF_DTYPE = tf.float32
 
 
 def print_exact(x_space):
+    #print("exact", [-x*2 for x in x_space])
     print("exact=", [np.exp(-x / 5.) * np.sin(x) for x in x_space])
+
+def print_domain(x_space):
+    print("domain:",x_space)
 
 
 def transform(results):
@@ -28,14 +32,14 @@ def assert_shape(x, shape):
             raise Exception("Shape mismatch: {} -- {}".format(S, shape))
 
 
-def f(x, u_set, pred_dx1, pred_dx2=0):
+def f(x, u_set, pred_dx1=0, pred_dx2=0):
     # sample equation: y = 2x --> y - 2x = 0
-    # val = u_set - 2 * x
+    #val = u_set + 2 * x
     # exact equation: y = e^(-x/5) * sin(x) --> y - e^(-x/5) * sin(x) = 0
-    val = u_set - tf.math.exp(-x / 5.) * tf.math.sin(x)
+    #val = u_set - tf.math.exp(-x / 5.) * tf.math.sin(x)
 
     # equation 1
-    # val =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
+    val =  pred_dx1 + (1/5)*u_set + tf.math.exp(x/5.)*tf.math.cos(x)
     # equation 2
     # val = pred_dx2 + (1 / 5.) * pred_dx1 + u_set + (1. / 5) * tf.math.exp(-x / 5.) * tf.math.cos(x)
 
@@ -44,8 +48,7 @@ def f(x, u_set, pred_dx1, pred_dx2=0):
 
 class DNNPDE:
 
-    def __init__(self, n_inputs, num_lyr, d, weights, biases, input_size, start, end,
-                 n_hidden=10, static_layer_initializer=False):
+    def __init__(self, n_inputs, start, end, static_layer_initializer=False):
         # layer option
         self.static_layer_initializer = static_layer_initializer
 
@@ -53,18 +56,28 @@ class DNNPDE:
         self.n_inputs = n_inputs
         self.x = tf.placeholder(shape=[None, 1], dtype=TF_DTYPE)
         self.x_space = np.linspace(start, end, self.n_inputs)
-        self.input_size = input_size
+        self.input_size = 1
 
         # hidden
-        self.n_layers = num_lyr
-        self.n_hidden = n_hidden
+        self.n_layers = 2
+        self.n_hidden = 20
+        self.lstm_cell = 50
+        self.step_boundaries = [2000, 4000]
+        self.step_values = [1.0, 0.5, 0.1]
+        self.drop_out_rate = 0.2
+        self.learning_rate = 0.001
 
         # outputs
-        self.u = self.u_network(self.x)
+        self.output_size = 1
+        self.u = self.u_dense_network(self.x)
         self.loss = self.loss_function()
-        self.error = np.zeros(self.n_inputs)
-        var_list1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "forward")
-        self.opt = tf.train.AdamOptimizer(learning_rate=0.001).minimize(self.loss, var_list=var_list1)
+        #var_list1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "forward")
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(self.loss)
+        #self.optimizer = self.optimizing(self.loss)
+
+        # method by Raissi
+        self.u_bn = self.u_boundary_network(self.x)
+
 
     def u_network(self, x):
         with tf.variable_scope('forward'):
@@ -74,6 +87,52 @@ class DNNPDE:
         assert_shape(x, (None, self.n_hidden))
 
         return output
+
+    def u_dense_network(self, inputs):
+
+        for i in range(self.n_layers - 1):
+            inputs = tf.keras.layers.Dense(self.n_hidden, activation=None)(inputs)
+            inputs = tf.keras.layers.BatchNormalization()(inputs)
+            inputs = tf.keras.activations.tanh(inputs)
+        output = tf.keras.layers.Dense(self.output_size, activation=None)(inputs)
+        output = tf.keras.layers.BatchNormalization()(output)
+
+
+        return output
+
+
+
+    def u_lstm_network(self, inputs):
+
+        shape = inputs.get_shape().as_list()
+
+        inputs = tf.keras.layers.Embedding(self.n_inputs, self.input_size, input_length=self.input_size)(inputs)
+        inputs = tf.keras.layers.LSTM(self.lstm_cell, input_shape=(shape[1], self.lstm_cell), return_sequences=True)(inputs)
+        for i in range(self.n_layers - 1):
+            inputs = tf.keras.layers.LSTM(self.lstm_cell, return_sequences=True)(inputs)
+            inputs = tf.keras.layers.Dropout(0.2)(inputs)
+        output = tf.keras.layers.Dense(self.output_size, activation=None)(inputs)
+        #output = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(self.output_size))(inputs)
+
+        return output
+
+    def u_boundary_network(self):
+
+
+
+    def optimizing(self, loss):
+
+        extra_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        #self.learning_rate = tf.train.piecewise_constant(tf.train.get_global_step(),
+                                                         #boundaries=self.step_boundaries, values=self.step_values)
+
+        opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        with tf.control_dependencies(extra_ops):
+            train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
+
+        return train_op
+
+
 
     def compute_dx(self, u, x):
         grad_1 = tf.gradients(u, x)[0]
@@ -88,7 +147,7 @@ class DNNPDE:
 
     def evaluation(self):
         pred_dx1, pred_dx2 = self.compute_dx(self.u, self.x)
-        return f(self.x, self.u, pred_dx1, pred_dx2)
+        return f(self.x, self.u, pred_dx1, pred_dx2=0)
 
     def loss_function(self):
 
@@ -135,39 +194,30 @@ class DNNPDE:
     def train(self, sess):
 
         domain_x = self.x_space.reshape((-1, self.input_size))
-        _, loss, u = sess.run([self.opt, self.loss, self.u], feed_dict={self.x: domain_x})
+        _, loss, u = sess.run([self.optimizer, self.loss, self.u], feed_dict={self.x: domain_x})
         # loss = sess.run([self.loss], feed_dict={self.x: domain_x})
 
         # Z = uh.reshape((self.input_size, self.refn))
         return loss, u  # res
 
 
+
+
+
+
 def main():
-    # Network Parameter
-    input_num_units = 1
-    h2_num_units = 10
-    output_num_units = 1
 
     # Function
     start, end = 0, 1
     n_inputs = 10
-    input_size = 1
-    num_lyr, d = 10, 1
-    d = 1
     x_space = np.linspace(start, end, n_inputs)
 
-    # Tensorflow Variable
-    seed = 100
-    seq_length_batch = np.array([n_inputs, 1])
-    weights = {'output': tf.Variable(tf.random_normal([h2_num_units, output_num_units], seed=seed))}
-    biases = {'output': tf.Variable(tf.random_normal([h2_num_units], seed=seed))}
-
     # Structure of deep learning
-    DNN = DNNPDE(n_inputs, num_lyr, d, weights, biases, input_size, start, end, n_hidden=100)
+    DNN = DNNPDE(n_inputs, start, end)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         loss, u = (0, None)
-        for step in range(1000):
+        for step in range(10000):
             loss, u = DNN.train(sess)
 
             if step % 1000 == 0:
@@ -177,6 +227,7 @@ def main():
         print("u=", list(map(lambda n: "%.4e" % n, transform(u))))
 
     print_exact(x_space)
+    print_domain(x_space)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,20 @@
 import unittest
 import numpy as np
 import tensorflow as tf
+import keras
 
-from dlpde_v1 import DNNPDE, transform, print_exact
+from dlpde_v1 import DNNPDE
 
+def transform(results):
+    return [r[0] for r in results]
 
 class TestDNNPDE(unittest.TestCase):
     def setUp(self):
         self.N_INPUTS = 3
         self.sess = tf.Session()
         self.x = np.linspace(0, 1, self.N_INPUTS).reshape((-1, 1))
-        self.dnn = DNNPDE(self.N_INPUTS, 2, 0, None, None, 1, 0, 1, n_hidden=3, static_layer_initializer=True)
+        #self.dnn = DNNPDE(self.N_INPUTS, 2, 0, None, None, 1, 0, 1, n_hidden=3, static_layer_initializer=True)
+        self.dnn = DNNPDE(self.N_INPUTS, 0, 1, static_layer_initializer=True)
         self.sess.run(tf.global_variables_initializer())
 
     def tearDown(self):
@@ -38,8 +42,10 @@ class TestDNNPDE(unittest.TestCase):
         # when
         result = self.sess.run(out, feed_dict={self.dnn.x: self.x})
 
+
         # then
-        print("u_network=", transform(result))
+        #print("u_network=", transform(result))
+        print(result)
 
     def test_compute_dx(self):
         # given
@@ -72,3 +78,16 @@ class TestDNNPDE(unittest.TestCase):
 
         # then
         print("loss=", result)
+
+    def test_opt(self):
+        # given
+
+        # when
+        result = self.sess.run(self.dnn.opt, feed_dict={self.dnn.x: self.x})
+
+        # then
+        print("train_op=", result)
+
+
+
+
