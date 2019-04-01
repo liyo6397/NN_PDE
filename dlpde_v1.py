@@ -116,7 +116,7 @@ class DNNPDE:
 
         return output
 
-    def u_boundary_network(self):
+    
 
 
 
