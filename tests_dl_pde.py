@@ -1,9 +1,9 @@
 import unittest
 import numpy as np
 import tensorflow as tf
-import keras
 
-from dlpde_v1 import DNNPDE
+
+from dlpde_v1 import DNNPDE_Cai, dnnpde_Rassi
 
 def transform(results):
     return [r[0] for r in results]
@@ -14,7 +14,7 @@ class TestDNNPDE(unittest.TestCase):
         self.sess = tf.Session()
         self.x = np.linspace(0, 1, self.N_INPUTS).reshape((-1, 1))
         #self.dnn = DNNPDE(self.N_INPUTS, 2, 0, None, None, 1, 0, 1, n_hidden=3, static_layer_initializer=True)
-        self.dnn = DNNPDE(self.N_INPUTS, 0, 1, static_layer_initializer=True)
+        self.dnn = DNNPDE_Cai(self.N_INPUTS, 0, 1, static_layer_initializer=True)
         self.sess.run(tf.global_variables_initializer())
 
     def tearDown(self):
@@ -88,6 +88,81 @@ class TestDNNPDE(unittest.TestCase):
         # then
         print("train_op=", result)
 
+
+
+class Testdnnpde_rassi(unittest.TestCase):
+
+    def setUp(self):
+        self.n_inputs = 5
+        self.sess = tf.Session()
+        self.batch_size = 1
+
+        #inputs variable
+        #self.inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
+        #self.b_inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
+        self.dnn = dnnpde_Rassi(self.n_inputs)
+        self.sess.run(tf.global_variables_initializer())
+
+        # inputs domain
+        self.x_space = np.linspace(0, 1, self.n_inputs)
+        self.t_space = np.linspace(0, 1, self.n_inputs)
+        self.b_t_space = np.zeros(self.n_inputs)
+        self.bX, self.bY = np.meshgrid(self.x_space, self.t_space)
+        self.domain = np.concatenate([self.bX.reshape((-1, 1)), self.bY.reshape((-1, 1))], axis=1)
+
+    def test_boundary_input(self):
+        # given
+        out = self.dnn.b_inputs
+        bX = np.zeros((4 * self.batch_size, 2))
+        bX[:self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[:self.batch_size, 1] = 0.0
+
+        bX[self.batch_size:2 * self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[self.batch_size:2 * self.batch_size, 1] = 1.0
+
+        bX[2 * self.batch_size:3 * self.batch_size, 0] = 0.0
+        bX[2 * self.batch_size:3 * self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        bX[3 * self.batch_size:4 * self.batch_size, 0] = 1.0
+        bX[3 * self.batch_size:4 * self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        # when
+        result = self.sess.run(out, feed_dict={self.dnn.b_inputs: bX})
+
+        # then
+        print("shape=", result.shape)
+        print("boundary_inputs=", result)
+
+    def test_u_network(self):
+        # given
+        out = self.dnn.b_u
+
+        # when
+        result = self.sess.run([out], feed_dict={self.dnn.b_inputs: self.domain})
+
+        # then
+        result = np.array(result)
+        print("shape=", result.shape)
+        print("boundary_inputs=", result)
+
+    def test_u_f(self):
+        # given
+        out = self.dnn.b_evaluate
+        bX = np.zeros((4 * self.batch_size, 2))
+        bX[:self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[:self.batch_size, 1] = 0.0
+
+        bX[self.batch_size:2 * self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[self.batch_size:2 * self.batch_size, 1] = 1.0
+
+        bX[2 * self.batch_size:3 * self.batch_size, 0] = 0.0
+        bX[2 * self.batch_size:3 * self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        bX[3 * self.batch_size:4 * self.batch_size, 0] = 1.0
+        bX[3 * self.batch_size:4 * self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        # when
+        result = self.sess.run([out], feed_dict={self.dnn.b_inputs: bX})
 
 
 

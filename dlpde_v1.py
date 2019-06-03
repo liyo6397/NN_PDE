@@ -46,17 +46,28 @@ def f(x, u_set, pred_dx1=0, pred_dx2=0):
     return val
 
 
-class DNNPDE:
+class DNNPDE_Cai:
 
     def __init__(self, n_inputs, start, end, static_layer_initializer=False):
         # layer option
         self.static_layer_initializer = static_layer_initializer
 
+
+
         # inputs
         self.n_inputs = n_inputs
+        self.inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
         self.x = tf.placeholder(shape=[None, 1], dtype=TF_DTYPE)
-        self.x_space = np.linspace(start, end, self.n_inputs)
+        self.b_inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
+        #self.x_space = np.linspace(start, end, self.n_inputs)
+        self.x_space = np.linspace(0, 1, n_inputs)
+        self.t_space = np.linspace(0, 1, n_inputs)
+        self.bX, self.bY = np.meshgrid(self.x_space, self.t_space)
+        self.domain = np.concatenate([self.bX.reshape((-1, 1)), self.bY.reshape((-1, 1))], axis=1)
         self.input_size = 1
+
+        # method by Raissi
+        #self.u_bn = self.u_boundary_network(self.b_inputs)
 
         # hidden
         self.n_layers = 2
@@ -75,8 +86,7 @@ class DNNPDE:
         self.optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(self.loss)
         #self.optimizer = self.optimizing(self.loss)
 
-        # method by Raissi
-        self.u_bn = self.u_boundary_network(self.x)
+
 
 
     def u_network(self, x):
@@ -97,9 +107,7 @@ class DNNPDE:
         output = tf.keras.layers.Dense(self.output_size, activation=None)(inputs)
         output = tf.keras.layers.BatchNormalization()(output)
 
-
         return output
-
 
 
     def u_lstm_network(self, inputs):
@@ -116,7 +124,7 @@ class DNNPDE:
 
         return output
 
-    
+
 
 
 
@@ -193,17 +201,99 @@ class DNNPDE:
 
     def train(self, sess):
 
-        domain_x = self.x_space.reshape((-1, self.input_size))
+        #domain_x = self.x_space.reshape((-1, self.input_size))
         _, loss, u = sess.run([self.optimizer, self.loss, self.u], feed_dict={self.x: domain_x})
-        # loss = sess.run([self.loss], feed_dict={self.x: domain_x})
-
-        # Z = uh.reshape((self.input_size, self.refn))
-        return loss, u  # res
 
 
 
 
 
+        return x
+
+class dnnpde_Rassi:
+
+    def __init__(self,n_inputs):
+        # inputs variable
+        self.n_inputs = n_inputs
+        self.input_size = 2
+        self.inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
+        self.b_inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
+
+        # inputs domain
+        self.x_space = np.linspace(0, 1, n_inputs)
+        self.t_space = np.linspace(0, 1, n_inputs)
+        self.b_t_space = np.zeros(self.n_inputs)
+        self.X, self.Y = np.meshgrid(self.x_space, self.t_space)
+        self.domain = np.concatenate([self.X.reshape((-1, 1)), self.Y.reshape((-1, 1))], axis=1)
+
+        # hidden
+        self.n_layers = 2
+        self.n_hidden = 5
+        self.step_boundaries = [2000, 4000]
+        self.step_values = [1.0, 0.5, 0.1]
+        self.drop_out_rate = 0.2
+        self.learning_rate = 0.001
+
+        #ouput variable
+        self.output_size = 1
+
+        #boundary condition
+        self.b_u = self.u_network(self.b_inputs)
+        self.b_evaluate = self.f(self.b_inputs,self.b_u)
+        self.b_loss = self.loss_function(self.b_evaluate)
+
+        #pde
+        #self.u = self.u_network(self.inputs)
+        #self.evaluate = self.f(self.inputs, self.u)
+        #self.loss = self.loss_function(self.evaluate)
+
+
+
+    def u_network(self, inputs):
+
+        for i in range(self.n_layers - 1):
+            inputs = tf.keras.layers.Dense(self.n_hidden, activation=None)(inputs)
+            inputs = tf.keras.layers.BatchNormalization()(inputs)
+            inputs = tf.keras.activations.tanh(inputs)
+        output = tf.keras.layers.Dense(self.output_size, activation=None)(inputs)
+        output = tf.keras.layers.BatchNormalization()(output)
+
+        return output
+
+    def f(self, x, y):
+
+        #return -2 * np.pi ** 2 * tf.sin(np.pi * x[:, 0]) * tf.sin(np.pi * x[:, 1])
+        raise NotImplementedError
+
+
+    def loss_function(self,y):
+
+        ls = tf.math.abs(y)
+        loss = tf.reduce_mean(ls)
+
+        return loss
+
+
+    def train(self, sess):
+
+        bX = np.zeros((4 * self.batch_size, 2))
+        bX[:self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[:self.batch_size, 1] = 0.0
+
+        bX[self.batch_size:2*self.batch_size, 0] = np.random.rand(self.batch_size)
+        bX[self.batch_size:2*self.batch_size, 1] = 1.0
+
+        bX[2*self.batch_size:3*self.batch_size, 0] = 0.0
+        bX[2*self.batch_size:3*self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        bX[3*self.batch_size:4*self.batch_size, 0] = 1.0
+        bX[3*self.batch_size:4*self.batch_size, 1] = np.random.rand(self.batch_size)
+
+        #domain_x = self.x_space.reshape((-1, self.input_size))
+        #_, loss, u = sess.run([self.optimizer, self.loss, self.u], feed_dict={self.x: domain_x})
+        u = sess.run([self.b_u], feed_dict={self.b_inputs: bX})
+
+        return u
 
 def main():
 
@@ -213,12 +303,13 @@ def main():
     x_space = np.linspace(start, end, n_inputs)
 
     # Structure of deep learning
-    DNN = DNNPDE(n_inputs, start, end)
+    #DNN = DNNPDE_Cai(n_inputs, start, end)
+    dnn = dnnpde_Rassi(n_inputs)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         loss, u = (0, None)
-        for step in range(10000):
-            loss, u = DNN.train(sess)
+        for step in range(3):
+            u = dnn.train(sess)
 
             if step % 1000 == 0:
                 print("Step:%6d loss:%.4e" % (step, loss))
