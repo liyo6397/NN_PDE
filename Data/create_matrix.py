@@ -68,8 +68,8 @@ class FDM_2D:
     def fdm_f(self,x,y):
 
         # (1)
-        #f = np.ones((self.inner_size)**2)
-        #inner_f = 1
+        '''f = np.ones((self.inner_size)**2)
+        inner_f = 1'''
 
         # (2)
         f = 30*np.pi**2*np.sin(5*np.pi*x)*np.sin(6*np.pi*y)
@@ -85,6 +85,7 @@ class FDM_2D:
 
 
         return f.reshape(-1,1), inner_f
+        #return f, inner_f
 
 
     def fdm_bc(self):
@@ -142,15 +143,15 @@ class FDM_2D:
         inner = np.transpose(np.mat(sparse.linalg.spsolve(self.A, self.b)))
         element_u = 0
 
-        #for j in range(self.inner_size):
-        #    for i in range(self.inner_size):
+        '''for j in range(self.inner_size):
+            for i in range(self.inner_size):
 
-        #        if j == 0:
-        #            u[i+1, j+1] = inner[element_u]
+                if j == 0:
+                    u[i+1, j+1] = inner[element_u]
 
-        #        else:
-        #            u[i + 1, j + 1] = inner[element_u]
-        #        element_u += 1
+                else:
+                    u[i + 1, j + 1] = inner[element_u]
+                element_u += 1'''
 
         for i in range(self.inner_size):
             for j in range(self.inner_size):
@@ -191,7 +192,7 @@ class FDM_2D:
 def main():
     xs = (0, 1.)
     ys = (0, 1.)
-    npoints = 10
+    npoints = 100
 
     fdm = FDM_2D(xs, ys, npoints)
 
@@ -202,11 +203,12 @@ def main():
     u = fdm.u
 
     X, Y = fdm.generate_grids()
+    print(u)
     print(np.shape(u))
     print(np.shape(X))
     print(np.shape(Y))
 
-    f = open('poisson_2.csv', 'w')
+    f = open('poisson_2_1.csv', 'w')
     #csv_file = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     f.write("x")
     f.write(",")

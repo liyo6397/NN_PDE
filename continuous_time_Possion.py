@@ -14,23 +14,29 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.gridspec as gridspec
 import time
 import pandas as pd
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 np.random.seed(1234)
 tf.set_random_seed(1234)
 
 class boundaryLearnNN:
 
-    def __init__(self, data, u, layers, lb, ub, bc_idx):
+    def __init__(self, data, u, layers, lb, ub, bc_idx, period_idx):
 
         self.bc_idx = bc_idx
+        self.period_idx = period_idx
         self.lb = lb
         self.ub = ub
         self.data = data
-        # Domain
+        # BC Domain
         self.data_bc = self.data[self.bc_idx,:]
         self.x = self.data_bc[:, 0:1]
         self.y = self.data_bc[:, 1:2]
         self.u = u[self.bc_idx]
+        # Period Domain
+        self.data_prd = self.data[self.period_idx, :]
+        self.x_prd = self.data_prd[:, 0:1]
+        self.y_prd = self.data_prd[:, 1:2]
 
         # tf placeholders and graph
         self.layers = layers
@@ -43,17 +49,29 @@ class boundaryLearnNN:
         self.x_tf = tf.placeholder(tf.float32, shape=[None, self.x.shape[1]])
         self.y_tf = tf.placeholder(tf.float32, shape=[None, self.y.shape[1]])
         self.u_tf = tf.placeholder(tf.float32, shape=[None, self.u.shape[1]])
+        self.x_prd_tf = tf.placeholder(tf.float32, shape=[None, self.x_prd.shape[1]])
+        self.y_prd_tf = tf.placeholder(tf.float32, shape=[None, self.y_prd.shape[1]])
 
         # Initialize NNs
         self.weights, self.biases = self.initialize_NN()
 
         # Training: boundary
         self.u_pred = self.net_u(self.x_tf, self.y_tf)
-        self.f_pred = self.net_f(self.x_tf, self.y_tf)
-        self.f = self.f()
+        self.f_pred = self.net_f(self.x_tf, self.y_tf, self.u_pred)
+        self.f_bc = self.f(self.x_tf, self.y_tf)
+        #Training: period
+        self.u_prd_pred = self.net_u(self.x_prd_tf, self.y_prd_tf)
+        self.f_prd_pred = self.net_f(self.x_prd_tf, self.y_prd_tf, self.u_prd_pred)
+        self.f_prd = self.f(self.x_prd_tf, self.y_prd_tf)
 
-        self.loss = tf.reduce_mean(tf.square(self.u_tf-self.u_pred)) +\
-                    tf.reduce_mean(tf.square(self.f-self.f_pred))
+
+        self.loss = tf.reduce_mean(tf.square(self.u_tf-self.u_pred)) + \
+                    tf.reduce_mean(tf.square(self.f_bc - self.f_pred))+\
+                    tf.reduce_mean(tf.square(self.f_prd - self.f_prd_pred))
+
+
+
+
 
         self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(self.loss,
                                                                 method='L-BFGS-B',
@@ -103,10 +121,10 @@ class boundaryLearnNN:
         u = self.neural_net(tf.concat([x, y], 1), self.weights, self.biases)
         return u
 
-    def net_f(self, x, y):
+    def net_f(self, x, y, u):
 
-        u_y = tf.gradients(self.u_pred, y)[0]
-        u_x = tf.gradients(self.u_pred, x)[0]
+        u_y = tf.gradients(u, y)[0]
+        u_x = tf.gradients(u, x)[0]
         u_xx = tf.gradients(u_x, x)[0]
         u_yy = tf.gradients(u_y, y)[0]
         f = -(u_xx+u_yy)
@@ -116,10 +134,10 @@ class boundaryLearnNN:
         return -f
 
 
-    def f(self):
+    def f(self,x,y):
 
-        f = np.ones((self.u.shape[0], 1))
-        #f = 30*np.pi**2*np.sin(5*np.pi*self.x_tf)*np.sin(6*np.pi*self.y_tf)
+        #f = np.ones((self.u.shape[0], 1))
+        f = 30*np.pi**2*tf.math.sin(5*np.pi*x)*tf.math.sin(6*np.pi*y)
 
         return f
 
@@ -129,7 +147,8 @@ class boundaryLearnNN:
 
 
     def train(self, nIter):
-        tf_dict = {self.x_tf: self.x, self.y_tf: self.y, self.u_tf: self.u}
+        tf_dict = {self.x_tf: self.x, self.y_tf: self.y, self.u_tf: self.u,\
+                   self.x_prd_tf: self.x_prd, self.y_prd_tf: self.y_prd}
 
         start_time = time.time()
         for it in range(nIter):
@@ -297,7 +316,7 @@ class pdeNN:
             self.sess.run(self.train_op_Adam, tf_dict)
 
             # Print
-            if it % 10 == 0:
+            if it % 1000 == 0:
                 elapsed = time.time() - start_time
                 loss_value = self.sess.run(self.loss, tf_dict)
                 lambda_1_value = self.sess.run(self.lambda_1)
@@ -331,12 +350,12 @@ class preprocessing:
         self.exact = exact.T
         self.N_u = nus
         self.npoints = 10
-        #self.npoints = 5
         self.data, self.u_train = self.produce_matrix()
         # Doman bounds
         self.lb = self.data.min(0)
         self.ub = self.data.max(0)
         self.bc_idx = self.find_bc_idx()
+        self.period_idx = self.find_period_idx()
         # Generate training data
         #self.idx, self.data_train, self.u_exact = self.training_data()
 
@@ -366,6 +385,19 @@ class preprocessing:
 
         return np.array(idx)
 
+    def find_period_idx(self):
+
+        idx = []
+        element = 0
+
+        for i in range(self.data.shape[0]):
+            if self.data[i, 0] <= 1/5.:
+                idx.append(element)
+            element += 1
+
+        return np.array(idx)
+
+
 
     def training_data(self):
 
@@ -385,10 +417,9 @@ if __name__ == "__main__":
     N_u = 2000
     #layers = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
     layers = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
-    layers = []
 
-    #data = scipy.io.loadmat('../Data/burgers_shock.mat')
-    data = pd.read_csv("Data/poisson.csv")
+
+    data = pd.read_csv("Data/poisson_2.csv")
 
     y = np.array(data['y'])
     x = np.array(data['x'])
@@ -399,18 +430,19 @@ if __name__ == "__main__":
     lb = data_process.lb
     ub = data_process.ub
     bc_idx = data_process.bc_idx
+    peroid_idx = data_process.period_idx
 
     ######################################################################
     ######################## Noiseles Data ###############################
     ######################################################################
     noise = 0.0
 
-    bc_learn = boundaryLearnNN(data, u_train, layers, lb, ub, bc_idx)
+    bc_learn = boundaryLearnNN(data, u_train, layers, lb, ub, bc_idx, peroid_idx)
     bc_learn.train(10000)
     weights = bc_learn.weights
     biases = bc_learn.biases
     u_pred, f_pred = bc_learn.predict(data)
-    u_train[bc_idx] = 1e-06
+    #u_pred[bc_idx] = 1e-06
 
 
 
@@ -435,7 +467,7 @@ if __name__ == "__main__":
     #error_lambda_2 = np.abs(lambda_2_value - nu)/nu * 100
 
 
-    print(u_pred)
+
     print('Error u: %e' % (error_u))
    # print('Error l1: %.5f%%' % (error_lambda_1))
    # print('Error l2: %.5f%%' % (error_lambda_2))
@@ -450,4 +482,12 @@ if __name__ == "__main__":
     #print(np.shape(y))
     h = plt.contourf(x, y, u)
     plt.show()
+
+    #fig = plt.figure()
+    #ax = Axes3D(fig)
+
+    #cset = ax.contour(X, Y, u, 16, extend3d=True)
+    #ax.clabel(cset, fontsize=9, inline=1)
+    #plt.show()
+
 
