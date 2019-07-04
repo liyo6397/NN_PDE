@@ -6,6 +6,7 @@
 \usepackage{subcaption}
 \newtheorem{definition}{Definition}[section]
 \newtheorem{theorem}{Theorem}[section]
+\newtheorem{statement}{Statement}[section]
 \newtheorem{example}{Example}[section]
 \newtheorem{lemma}{Lemma}[section]
 \usepackage{graphicx}
@@ -13,9 +14,12 @@
 
 \begin{document}
 	\tableofcontents
+\begin{abstract}
+	We propose to solve high-dimensional PDEs using a deep learning algorithm which uses multi-layer neural networks. A multi-layer neural network is composed with nonlinear operations with parameters estimating from data.
+\end{abstract}
 	\section{Introduction}
 
-	In our paper, we consider a class of quasilinear parabolic partial differential equations where $u$ is defined over $\Omega_T:\Omega\times [0,T]$, where $\Omega\subset\Bbb R^n$ and $T>0$:
+	In our paper, we consider a class of quasilinear parabolic partial differential equations where $u$ is defined over $\Omega_T:\Omega\times [0,T]$, where $\Omega\subset\mathbb{R}^n $ and $T>0$:
 	\begin{equation}
 	\begin{cases}
  \frac{\partial u}{\partial t} +A(u) =\frac{\partial u}{\partial t}+{\rm div}(a(x,t,u,Du))+a(x,t,u,Du)=0 & \text{for $(x,t) \in \Omega_{T}$}\\
@@ -81,6 +85,26 @@ For $q \in C^{d}(\mathbb{R}^{k})$ and $1 < p < \infty$, $C^{d,p}(\mu)$ is the us
 ||q(\psi,x,t)||_{p,\mu} = \left[ \sum_{\alpha \leq d} \int_{\mathbb{R}^{k}} |D^{\alpha}q(\psi,x,t)|^{p} d \mu(x)\right]^{\frac{1}{p}}
 		\end{equation}
 
+\section{Literature Review}
+
+Using deep neural network to find the solutions for PDEs has rising in the computational mathematics field in these years. 
+To the best of our knowledge, most of the works directly used ground truth to train the solver based on deep learning. 
+Maziar Raissi et al. \cite{raissi}  and Jun-Ting Hsieh et al. \cite{hsieh} trained the deep neural network with supervised learning to approximate the solutions of PDEs. 
+
+Some research works use special tool to correct the initialization of weights and biases. 
+They found that the initialization of weights and biases determine the accuracy of the solver. 
+Weinan E et al. \cite{weinan} initialized the weights via transfering the weight from similar problem to speed up the convergence rate and learning time. 
+Yuehaw Khoo et al. solve the committor function which is the central object of transition path theory by NN. They suggest that the usage of sampling scheme can prevent the output goes too disperse. 
+
+However, only few research providing the sufficient mathematical analysis to explain the approximating capability to PDE function of neural network. 
+Sirignano \cite{sirignano} provided the proof for the approximation of PDE solutions with neural networks. 
+Cybenko  et al.   \cite{cybenko} provided the mathematical proof that the finite linear combination form like the $q$ function in (\ref{eq:nn})
+can approximate any continuous function with support in the unit hypercube.
+The mathematical analysis of deep learning in our research is based on the Cybenko et al. 
+%Finite difference methods become infeasible in higher dimensions due to the explosion in the number of grid points and the demand for reduced time step size. 
+
+
+
 
 
 \section{Mathematical analysis of multi-layered neural network}
@@ -106,13 +130,13 @@ Moreover, functions $\phi_{i,j}$ are universal for the given dimension $n$; they
 
 We investigat the diagonal sequence property in Banach space with multilayered neural network. 
 
-\begin{theorem}
+\begin{statement}
 	Consider a sequence of functions $\{q_{h}(\psi,x,t)\}$ defines on the positive integers that take values in reals where $h = 1,2, \dots m$ indicates the number of layer in the multilayer neural network model. Assume that this sequence is uniformly bounded, i.e. there is a positive constant that 
 
-	\[q_{h}(x)| \leq C\]|
+	\[|q_{h}(x)| \leq C\]|
 	
 	for all $x \in \mathbb{N}$. Then, there exists a subsequence $h(j)$ such that $f_{h(j)}$ converges for all $x \in  \mathbb{N}$.
-\end{theorem}
+\end{statement}
 By Theorem 1,2 in \cite{hornik} and Theorem 1 in \cite{cybenko}, we show that neural networks are dense in $C^{d}(\Omega_{T})$.
 \begin{lemma}
 	If $\psi$ is bounded and nonconstant function, then $q(\psi,x,t)\in L^p(\mu)$ is dense in $C(\Omega_{T})$ for all compact subsets $S$ of $\mathbb{R}^{k'}$ where $C(\Omega_{T})$ is the space of all continuous functions on $\Omega_{T}$. In other words, given any $g \in C(\Omega_{T})$ and $\epsilon > 0$, there is a sum $G(x)=\psi(wx'+\theta)$, for which
@@ -293,9 +317,6 @@ We use tensorflow to implement our multilayered model. The algorithm is tested o
 %\end{figure}
 \section{ANN approximation to PDE}
 
-\section{Literature Review}
-
-Using deep neural network to find the solutions for PDEs has rising in the computational mathematics field in these years.  Finite difference methods become infeasible in higher dimensions due to the explosion in the number of grid points and the demand for reduced time step size. Sirignano \cite{sirignano} provided the proof for the approximation of PDE solutions with neural networks. We will present the proof in (Section 2). We propose to solve high-dimensional PDEs using a deep learning algorithm which uses multi-layer neural networks. A multi-layer neural network is composed with nonlinear operations with parameters estimating from data.
 
 
 \bibliographystyle{unsrt}

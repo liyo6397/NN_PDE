@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 
-from dlpde_v1 import DNNPDE_Cai, dnnpde_Rassi
+from dlpde_v1 import DNNPDE_Cai, dnnpde_berg
 
 def transform(results):
     return [r[0] for r in results]
@@ -90,7 +90,7 @@ class TestDNNPDE(unittest.TestCase):
 
 
 
-class Testdnnpde_rassi(unittest.TestCase):
+class Testdnnpde_berg(unittest.TestCase):
 
     def setUp(self):
         self.n_inputs = 5
@@ -100,7 +100,7 @@ class Testdnnpde_rassi(unittest.TestCase):
         #inputs variable
         #self.inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
         #self.b_inputs = tf.placeholder(shape=[None, 2], dtype=TF_DTYPE)
-        self.dnn = dnnpde_Rassi(self.n_inputs)
+        self.dnn = dnnpde_berg(self.n_inputs)
         self.sess.run(tf.global_variables_initializer())
 
         # inputs domain
@@ -147,7 +147,7 @@ class Testdnnpde_rassi(unittest.TestCase):
 
     def test_u_f(self):
         # given
-        out = self.dnn.b_evaluate
+        out = self.dnn.b_u
         bX = np.zeros((4 * self.batch_size, 2))
         bX[:self.batch_size, 0] = np.random.rand(self.batch_size)
         bX[:self.batch_size, 1] = 0.0
@@ -164,5 +164,6 @@ class Testdnnpde_rassi(unittest.TestCase):
         # when
         result = self.sess.run([out], feed_dict={self.dnn.b_inputs: bX})
 
+        print(self.dnn.b_inputs)
 
 
