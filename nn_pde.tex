@@ -15,7 +15,14 @@
 \begin{document}
 	\tableofcontents
 \begin{abstract}
-	We propose to solve high-dimensional PDEs using a deep learning algorithm which uses multi-layer neural networks. A multi-layer neural network is composed with nonlinear operations with parameters estimating from data.
+	We propose to solve high-dimensional PDEs using a deep learning algorithm which uses multi-layer neural networks. 
+	Rather than feeding large amounts data for trainingm, the initialization of the training data affect the accuracy of the model more. 
+	We use the Poisson equation to understand how the NN approximate the hidden pattern. 
+	By giving the specific boundary data, NN can predict the sole picture correctly.
+	This paper provides the loss function which is a method for employing  target derivatives in addition to the differential operator of PDEs. 
+In addition, we prove a theorem regarding the output space of NN is Lipschiz contiuous  for a class of quasilinear parabolic PDEs.
+Thereby our model is data-efficiency and
+generalization capabilities of our learned function approximation.
 \end{abstract}
 	\section{Introduction}
 
@@ -189,9 +196,7 @@ Hence the subspace $q(\psi,x,t)$ must be dense in $C(\Omega_{T})$.\\
 	    for all $w \in\mathbb{R}^{k'}$ and $\theta \in \mathbb{R}$, which is impossible.
 Hence the subspace $q(\psi, x, t)$ must be dense in $C(\Omega_{T})$.
 \end{proof}
-\subsection{Approximation capability of multilayered neural network to PDEs solutions}
-
-
+\subsection{Convergence of the loss function}
 
 Measuring closeness of functions requires that the activation funcction is nonconstant and derivatives of the approximate function up to order $d$ are bounded \cite{hornik}. 
 Then, $q(\psi,x,t)$ is dense in weighted Sobolev space $W^{d,p}(\mu)$ which is defined as \cite{hornik}
@@ -200,8 +205,9 @@ C^{d,p}(\mu) = \{ u \in C^{d}(\Omega_{T}): ||u||_{d,p,\mu} < \infty \}
 \end{equation}
 Therefore, it guarantees the loss function is smooth functional approximation.
 
-We follow the proof from Theorem 2.2 in \cite{kurkova} and Theorem 7.3 in \cite{sirignano} to prove that the multi-layer neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f)$. 
-Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
+
+We follow the proof from Theorem 2.2 in \cite{kurkova} and Theorem 7.3 in \cite{sirignano} to prove that the multi-layer neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f)$.  
+%Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
 
 \begin{theorem}  \label{nn_proof}
 	Let $n \in \mathbb{N}$ with $n \geq 2$, $\psi: \Omega_{T} \rightarrow \textit{I}$ be a sigmoid function. $q \in C^{d}(\Omega_{T}))$, and $\epsilon$ be a positive real number. 
@@ -210,6 +216,7 @@ Then, there exist $k \in \mathbb{N}$ and functions $\Phi_{i}$ and $\phi_{i,j} \i
 	\left|q(\psi,x,t)-\sum_{j=1}^{2m}\Phi_{j}\left(\sum_{i=1}^{n}\phi_{i,j}(x_p)\right)\right| < \epsilon \text{ for every } (x_1, \dots, x_n) \in I^{n}
 	\end{equation}
 	such that any continuous function defined on the n-dimension cube can be approximately well by a function belongs to $Q(\psi,x,T)$.
+
 \end{theorem}
 \begin{proof}
 
@@ -270,13 +277,22 @@ we can use Lemma \ref{dense_set} for every $j = 1, \dots 2m+1$ to obtain $g_{j} 
 \end{proof}
 
 We follow the proof from Theorem 2.2 in \cite{kurkova} and Theorem 7.3 in \cite{sirignano} to prove that the multi-layer neural network can approximate any any function in $L^{p}(\mu)$ if its closeness is measured by $J(f)$. 
-Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
+Then, we use the characteristic to design the solver so that it can minimize the loss function. 
+
+%Sirignano \cite{sirignano} presented the theorem that the multilayered feedforward networks is able to universally approximate solutions of quasilinear parabolic PDEs by proving the existence of approximate solutions which make the loss function $J(f)$ arbitrarily small.
 \begin{theorem}
-	Let the $L^{2}$ error $J(f)$ measures how well the approximate solution $q(\psi,x,t)$ satisfies the differential operator in the equation.  
-	Let $q(\psi,x,t)$ be approaching solutions of  neural network which minimizes loss function $J(f(q,\triangledown_{x} q))$. 
+	%Let the $L^{2}$ error $J(f)$ measures how well the approximate solution $q(\psi,x,t)$ satisfies the differential operator in the equation.  
+	Let $q(\psi,x,t)$ be approaching solutions of  neural network which minimizes loss function $J(f(q,\triangledown_{x}q, \triangledown_{xx}q, \dots),q)$. 
 	Using the results from the proof of Theorem 3 \cite{hornik}, for all $u \in C^{d}(I^{n}))$ and $\epsilon > 0$, such that
-	\[q_i \in \textit{Q} \textrm{ such that } J(f) \rightarrow 0 \textrm{ as } m \rightarrow \infty \text{ and}\]
-	\[ q_{i} \rightarrow u  \text{ as } m \rightarrow \infty.\] 
+	\[q_i \in \textit{Q} \textrm{ such that }  q_{i} \rightarrow u  \textrm{ as }J(f,q) \rightarrow 0  \]
+	
+	The optimizing process must minimize $\{q, f(q,\triangledown_{x}q, \triangledown_{xx}q, \dots)\}$ together.
+	Therefore, we can construct the objective loss function:
+	\begin{equation}
+	J(f,q) = || f ||^{2} + \sum_{i=0}^{K}||D_{x}^{i}q(\psi,x,t) ||^{2}
+	\end{equation}
+	where $K$ is the highest order of derivative in the equation. 
+	
 \end{theorem}
 
 \begin{proof}
@@ -289,7 +305,10 @@ Sirignano \cite{sirignano} presented the theorem that the multilayered feedforwa
 	\footnotetext{Suppose $A \subset \mathbb{R}^{n}$ is open and $f : A \rightarrow \mathbb{R}^{n}$ is differentiable. A function is locally Lipschitz continuous if there exists a contant $K>0$ and $\delta > 0$such that $|x_1-x_2|>\delta$ implies $|q(x_1)-q(x_2)| \leq K |x_1-x_2|^{}$.}
 	
 	\begin{equation}\label{eq:lip}
-	\left|f(t,x,u,\bigtriangledown_{x}u) - f(t,x,q,\bigtriangledown_{x}q)\right| \leq \left(|u|^{p_{1}/2} + |\bigtriangledown_{x}u|^{p_{2}/2} + |q(\psi,x,t)|^{p_{3}/2} + |\bigtriangledown_{x}q(\psi,x,t)|^{p_{4}/2}\right)\left(|u-q(\psi,x,t)| + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|\right)
+	\begin{aligned}
+	\left|f(t,x,u,\bigtriangledown_{x}u) - f(t,x,q,\bigtriangledown_{x}q)\right| \leq &\left(|u|^{p_{1}/2} + |\bigtriangledown_{x}u|^{p_{2}/2} + |q(\psi,x,t)|^{p_{3}/2} + |\bigtriangledown_{x}q(\psi,x,t)|^{p_{4}/2}\right)  \\
+	&\left(|u-q(\psi,x,t)| + |\bigtriangledown_{x}u-\bigtriangledown_{x}q(\psi,x,t)|\right)
+	\end{aligned}
 	\end{equation}
 	for some constants $0<p_{1},p_{2},p_{3},p_{4} < \infty$. 
 	We integrate (\ref{eq:lip}) and using H\"older inequality with exponents $r_{1}$, $r_{2}$:
@@ -308,7 +327,9 @@ Sirignano \cite{sirignano} presented the theorem that the multilayered feedforwa
 	\end{equation}
 	%The last inequality is from (\ref{eq:m_dense})
 \end{proof}
-\subsection{initialization}
+
+
+\subsection{Initialization}
 Although the mathematical analysis prove that NN is capable to solve PDE with convergence guarantee. 
 The initialization determine whether it could approximate accurate result. 
 The following example presents the empirical result to support the statement that the starting point can force the NN to estimate the result close to the ground true solution. 
@@ -400,9 +421,18 @@ If we trained NN is with boundary domain and collected the points which value of
 	 	 
 	 	\label{fig:fdm_posn_2_2}
 	 \end{subfigure}
+  \begin{subfigure}{0.5\textwidth}
+ 	\includegraphics[width=0.9\linewidth]{boundary_p2_whole.png}
+ 	\caption{The NN solutions from Example 2 is trained with the cooridinates value of x axis $ \leq 2/5$ or value of y axis $\leq 2/6$ and cooridinates value of x axis $ \geq 4/5$ or value of y axis $\geq 1/6$.}
+ 	
+ 	\label{fig:fdm_posn_2_3}
+ \end{subfigure}
  \caption{The solutions generated from NN compared with the ground true solutions in Example 2. }
 \end{figure}
 However, if we get rid of the boundary domain and only trained with the  value of x axis $<1/5$ and value of y axis $< 1/6$ the result is presented as Figure \ref{fig:fdm_posn_2_2}. The computed result is better than training with boundary domain. 
+
+Therefore, we conclude that when the differential operator of Poisson equation is not constant, the boundary domain is not enough for training.
+In addition, we need to concern the periodic in equation. 
 
 
 \section{Conclusion}

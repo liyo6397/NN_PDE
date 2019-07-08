@@ -57,18 +57,29 @@ class boundaryLearnNN:
 
         # Training: boundary
         self.u_pred = self.net_u(self.x_tf, self.y_tf)
-        self.f_pred = self.net_f(self.x_tf, self.y_tf, self.u_pred)
+        self.u_x_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_y_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_xx_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_yy_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.f_pred = self.net_f_bc(self.x_tf, self.y_tf, self.u_pred)
         self.f_bc = self.f(self.x_tf, self.y_tf)
         #Training: period
         self.u_prd_pred = self.net_u(self.x_prd_tf, self.y_prd_tf)
-        self.f_prd_pred = self.net_f(self.x_prd_tf, self.y_prd_tf, self.u_prd_pred)
+        self.u_x_prd_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_y_prd_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_xx_prd_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_yy_prd_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.f_prd_pred = self.net_f_prd(self.x_prd_tf, self.y_prd_tf, self.u_prd_pred)
         self.f_prd = self.f(self.x_prd_tf, self.y_prd_tf)
 
 
-        self.loss = tf.reduce_mean(tf.square(self.u_tf-self.u_pred)) + \
-                    tf.reduce_mean(tf.square(self.f_bc - self.f_pred))+\
-                    tf.reduce_mean(tf.square(self.f_prd - self.f_prd_pred))
-
+        self.loss = tf.reduce_mean(tf.square(self.f_prd - self.f_prd_pred))+\
+                    tf.reduce_mean(tf.square(self.u_x_prd_pred)) + \
+                    tf.reduce_mean(tf.square(self.u_y_prd_pred)) +\
+                    tf.reduce_mean(tf.square(self.u_x_pred)) + \
+                    tf.reduce_mean(tf.square(self.u_y_pred)) +\
+                    tf.reduce_mean(tf.square(self.f_bc - self.f_pred)) #+ \
+                    #tf.reduce_mean(tf.square(self.u_tf - self.u_pred))
 
 
 
@@ -76,10 +87,10 @@ class boundaryLearnNN:
         self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(self.loss,
                                                                 method='L-BFGS-B',
                                                                 options={'maxiter': 50000,
-                                                                         'maxfun': 50000,
-                                                                         'maxcor': 50,
-                                                                         'maxls': 50,
-                                                                         'ftol': 1.0 * np.finfo(float).eps})
+                                                                        'maxfun': 50000,
+                                                                        'maxcor': 50,
+                                                                        'maxls': 50,
+                                                                        'ftol': 1.0 * np.finfo(float).eps})
 
         self.optimizer_Adam = tf.train.AdamOptimizer()
         self.train_op_Adam = self.optimizer_Adam.minimize(self.loss)
@@ -121,17 +132,34 @@ class boundaryLearnNN:
         u = self.neural_net(tf.concat([x, y], 1), self.weights, self.biases)
         return u
 
-    def net_f(self, x, y, u):
+    def net_f_bc(self, x, y, u):
 
         u_y = tf.gradients(u, y)[0]
         u_x = tf.gradients(u, x)[0]
         u_xx = tf.gradients(u_x, x)[0]
         u_yy = tf.gradients(u_y, y)[0]
+        self.u_x_pred = u_x
+        self.u_y_pred = u_y
+
         f = -(u_xx+u_yy)
 
         #f = u_t + lambda_1*u*u_x - lambda_2*u_xx
 
-        return -f
+        return f
+
+    def net_f_prd(self, x, y, u):
+
+        u_y = tf.gradients(u, y)[0]
+        u_x = tf.gradients(u, x)[0]
+        u_xx = tf.gradients(u_x, x)[0]
+        u_yy = tf.gradients(u_y, y)[0]
+        self.u_x_prd_pred = u_x
+        self.u_y_prd_pred = u_y
+        self.u_xx_prd_pred = u_xx
+        self.u_yy_prd_pred = u_yy
+        f = -(u_xx+u_yy)
+
+        return f
 
 
     def f(self,x,y):
@@ -209,6 +237,7 @@ class pdeNN:
         self.y_tf = tf.placeholder(tf.float32, shape=[None, self.y.shape[1]])
         self.u_tf = tf.placeholder(tf.float32, shape=[None, self.u.shape[1]])
 
+
         # Initialize NNs
         self.weights = weights
         self.biases = biases
@@ -220,10 +249,12 @@ class pdeNN:
 
         #Training: f
         self.u_pred = self.net_u(self.x_tf, self.y_tf)
+        self.u_x_pred = tf.Variable([0.0], dtype=tf.float32)
+        self.u_y_pred = tf.Variable([0.0], dtype=tf.float32)
         self.f_pred = self.net_f(self.x_tf, self.y_tf)
         self.f = self.f()
 
-        self.loss = self.loss()
+        self.loss = tf.reduce_mean(tf.square(self.f - self.f_pred))
 
         self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(self.loss,
                                                                 method = 'L-BFGS-B',
@@ -281,6 +312,8 @@ class pdeNN:
         u_x = tf.gradients(self.u_pred, x)[0]
         u_xx = tf.gradients(u_x, x)[0]
         u_yy = tf.gradients(u_y, y)[0]
+        self.u_x_pred = u_x
+        self.u_y_pred = u_y
         f = -(u_xx+u_yy)
 
         #f = u_t + lambda_1*u*u_x - lambda_2*u_xx
@@ -289,7 +322,8 @@ class pdeNN:
 
     def f(self):
 
-        f = np.ones((self.u.shape[0], 1))
+        #f = np.ones((self.u.shape[0], 1))
+        f = 30 * np.pi ** 2 * tf.math.sin(5 * np.pi * x) * tf.math.sin(6 * np.pi * y)
         return f
 
     def loss(self):
@@ -349,13 +383,13 @@ class preprocessing:
         self.ys = ys.flatten()[:,None]
         self.exact = exact.T
         self.N_u = nus
-        self.npoints = 10
+        self.npoints = 100
         self.data, self.u_train = self.produce_matrix()
         # Doman bounds
         self.lb = self.data.min(0)
         self.ub = self.data.max(0)
         self.bc_idx = self.find_bc_idx()
-        self.period_idx = self.find_period_idx()
+        self.period_idx_bg, self.period_idx_fn = self.find_period_idx()
         # Generate training data
         #self.idx, self.data_train, self.u_exact = self.training_data()
 
@@ -387,15 +421,19 @@ class preprocessing:
 
     def find_period_idx(self):
 
-        idx = []
+        idx_1 = []
+        idx_2 = []
         element = 0
 
         for i in range(self.data.shape[0]):
-            if self.data[i, 0] <= 1/5.:
-                idx.append(element)
+            if self.data[i, 0] <= 2/5. or self.data[i, 1] <= 2/6.:
+                idx_1.append(element)
+            if self.data[i, 0] >= 4/5. or self.data[i, 1] >= 5/6.:
+                idx_2.append(element)
+
             element += 1
 
-        return np.array(idx)
+        return np.array(idx_1), np.array(idx_2)
 
 
 
@@ -415,11 +453,11 @@ if __name__ == "__main__":
     nu = 0.01/np.pi
 
     N_u = 2000
-    #layers = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
+    #layers = [2, 10, 10, 1]
     layers = [2, 20, 20, 20, 20, 20, 20, 20, 20, 1]
 
 
-    data = pd.read_csv("Data/poisson_2.csv")
+    data = pd.read_csv("Data/poisson_2_1.csv")
 
     y = np.array(data['y'])
     x = np.array(data['x'])
@@ -429,15 +467,16 @@ if __name__ == "__main__":
     data, u_train = data_process.produce_matrix()
     lb = data_process.lb
     ub = data_process.ub
-    bc_idx = data_process.bc_idx
-    peroid_idx = data_process.period_idx
+    #bc_idx = data_process.bc_idx
+    period_idx, period_idx_fn = data_process.find_period_idx()
+    bc_idx = period_idx_fn
 
     ######################################################################
     ######################## Noiseles Data ###############################
     ######################################################################
     noise = 0.0
 
-    bc_learn = boundaryLearnNN(data, u_train, layers, lb, ub, bc_idx, peroid_idx)
+    bc_learn = boundaryLearnNN(data, u_train, layers, lb, ub, bc_idx, period_idx)
     bc_learn.train(10000)
     weights = bc_learn.weights
     biases = bc_learn.biases
@@ -446,7 +485,7 @@ if __name__ == "__main__":
 
 
 
-    #model = pdeNN(data, u_train, layers, lb, ub, bc_idx, weights, biases)
+    #model = pdeNN(data, u_train, layers, lb, ub, period_idx, weights, biases)
     #model.train(10000)
 
     ###############
@@ -473,13 +512,11 @@ if __name__ == "__main__":
    # print('Error l2: %.5f%%' % (error_lambda_2))
 
 
-    u = np.reshape(u_pred, (10,10))
-    x = np.reshape(x, (10, 10))
-    y = np.reshape(y, (10, 10))
+    u = np.reshape(u_pred, (100,100))
+    x = np.reshape(x, (100, 100))
+    y = np.reshape(y, (100, 100))
 
-    #print(np.shape(u))
-    #print(np.shape(x))
-    #print(np.shape(y))
+
     h = plt.contourf(x, y, u)
     plt.show()
 
